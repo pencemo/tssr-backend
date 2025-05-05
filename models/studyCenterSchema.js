@@ -1,0 +1,68 @@
+import mongoose from "mongoose";
+
+const { Schema } = mongoose;
+
+const StudycenterSchema = new Schema(
+  {
+    name: {
+      type: String,
+      required: true,
+    },
+    renewalDate: {
+      type: Date,
+      required: true,
+    },
+    website: {
+      type: String,
+      default: "",
+    },
+    isVerified: {
+      type: Boolean,
+      default: true,
+    },
+    place: {
+      type: String,
+      required: true,
+    },
+    pincode: {
+      type: String,
+      required: true,
+    },
+    city: {
+      type: String,
+      required: true,
+    },
+    state: {
+      type: String,
+      required: true,
+    },
+    centerHead: {
+      type: String,
+      required: true,
+    },
+    atcId: {
+      type: String,
+      required: true,
+    },
+    courses: [
+      { type: mongoose.Schema.Types.ObjectId, ref: "Course", required: true },
+    ],
+
+    regNo: {
+      type: String,
+      required: true,
+      unique: true,
+    },
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
+  },
+  {
+    timestamps: true,
+  }
+);
+
+const StudyCenter = mongoose.model("Studycenter", StudycenterSchema);
+
+export default StudyCenter;
