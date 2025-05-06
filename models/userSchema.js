@@ -41,9 +41,9 @@ const userSchema = new Schema(
       required: true,
       default: "user",
     },
-    StudyCenterId: {
+    studycenterId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "StudyCenter",
+      ref: "Studycenter",
     },
     phoneNumber: {
       type: String,

@@ -11,6 +11,7 @@ export const getAllSubjects = async (req, res) => {
 };
 
 
+
 export const getSubjectById = async (req, res) => {
   try {
     const subject = await Subject.findById(req.params.id);

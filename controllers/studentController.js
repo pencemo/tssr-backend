@@ -3,18 +3,21 @@ import Student from "../models/studentSchema.js";
 import Studycenter from "../models/studyCenterSchema.js";
 
 export const getAllStudents = async (req, res) => {
-    try {
-      console.log("Fetching all students...");
- const centers = await Student.find().populate(
-   //    "courseId studyCenterId",
-   //    "courseName category name"
-   "studyCenterId courseId",
-   "name courseName"
- );
-    res.status(200).json(centers);
+  try {
+    const centers = await Student.find().populate(
+      "studyCenterId courseId",
+      "name courseName"
+    );
+    res.status(200).json({
+      success: true,
+      message: "Fetched all students",
+      data: centers,
+    });
   } catch (error) {
-        res.status(400).json({ message: "Error retrieving students", error });
-        console.log(error);
+    res.status(400).json({
+      success: false,
+      message: "Error retrieving students",
+    });
   }
 };
 
@@ -23,17 +26,26 @@ export const getStudentById = async (req, res) => {
   try {
     const student = await Student.findById(req.params.id).populate(
       "studyCenterId courseId",
-      " name courseName"
+      "name courseName"
     );
     if (!student) {
-      return res.status(404).json({ message: "Student not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Student not found",
+      });
     }
-    res.status(200).json(student);
+    res.status(200).json({
+      success: true,
+      message: "Fetched student",
+      data: student,
+    });
   } catch (error) {
-    res.status(400).json({ message: "Error retrieving student", error });
+    res.status(400).json({
+      success: false,
+      message: "Error retrieving student",
+    });
   }
 };
-
 
 export const updateStudent = async (req, res) => {
   const { id } = req.params;
@@ -42,7 +54,10 @@ export const updateStudent = async (req, res) => {
     const student = await Student.findById(id);
 
     if (!student) {
-      return res.status(404).json({ message: "Student not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Student not found",
+      });
     }
 
     // Manual field-by-field update (with basic validation)
@@ -73,11 +88,15 @@ export const updateStudent = async (req, res) => {
 
     await student.save();
 
-    res.status(200).json({ message: "Student updated successfully", student });
+    res.status(200).json({
+      success: true,
+      message: "Student updated successfully",
+      data: student,
+    });
   } catch (error) {
-    console.error(error);
-    res
-      .status(500)
-      .json({ message: "Error updating student", error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Error updating student",
+    });
   }
 };

@@ -7,13 +7,15 @@ import studentRoutes from "./routes/studentRoutes.js";
 import subjectRoutes from "./routes/subjectRoutes.js";
 import courseRoutes from "./routes/courseRoutes.js";
 import connectDB from "./config/db.js";
-
+import resultRoutes from "./routes/resultRoutes.js";
+import cookieParser from "cookie-parser";
 dotenv.config();
 const app = express();
 
 // Middleware
 app.use(express.json());
 app.use(cors());
+app.use(cookieParser());
 app.use(morgan("dev"));
 
 // Routes
@@ -21,6 +23,7 @@ app.use("/api/auth", authenticationRoutes);
 app.use("/api/student", studentRoutes);
 app.use("/api/subject", subjectRoutes);
 app.use("/api/course", courseRoutes);
+app.use("/api/result", resultRoutes);
 
 // Connect to MongoDB
 connectDB();
