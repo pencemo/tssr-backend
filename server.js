@@ -9,12 +9,19 @@ import courseRoutes from "./routes/courseRoutes.js";
 import connectDB from "./config/db.js";
 import resultRoutes from "./routes/resultRoutes.js";
 import cookieParser from "cookie-parser";
+import  studycenterRoute  from "./routes/studycenterRoute.js";
 dotenv.config();
 const app = express();
 
+// CORS Options
+const corsOptions = {
+  origin: "http://localhost:5173", // allow your frontend origin
+  credentials: true, // allow sending cookies
+};
+
 // Middleware
 app.use(express.json());
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(cookieParser());
 app.use(morgan("dev"));
 
@@ -24,7 +31,7 @@ app.use("/api/student", studentRoutes);
 app.use("/api/subject", subjectRoutes);
 app.use("/api/course", courseRoutes);
 app.use("/api/result", resultRoutes);
-
+app.use("/api/studycenter", studycenterRoute);
 // Connect to MongoDB
 connectDB();
 

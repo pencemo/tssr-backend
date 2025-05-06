@@ -5,35 +5,52 @@ import StudyCenter from "../models/studyCenterSchema.js";
 
 
 export const signUp = async (req, res) => {
-  const { name, email, password, phoneNumber, franchiseId, role, profileImg } =
-    req.body;
+  const {
+    name,
+    email,
+    password,
+    phoneNumber,
+    franchiseId,
+    role,
+    profileImg,
+    studycenterId, 
+  } = req.body;
 
   try {
+    // Check for existing user
     const existingUser = await User.findOne({ email });
-    if (existingUser)
-      return res.status(400).json({ message: "User already exists" });
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        message: "User already exists",
+      });
+    }
 
+    // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // Create new user
     const user = await User.create({
       name,
       email,
       password: hashedPassword,
       phoneNumber,
-    //   franchiseId,
+      franchiseId,
       role: role || "user",
-      profileImg: profileImg || "", 
-      isVerified: true, 
+      profileImg: profileImg || "",
+      studycenterId, // ✅ Save studyCenterId reference
+      isVerified: true,
     });
 
-    res.status(201).json({ 
-      success: true, 
-      message: "User registered successfully" 
+    res.status(201).json({
+      success: true,
+      message: "User registered successfully",
+      userId: user._id,
     });
   } catch (err) {
-    res.status(500).json({ 
-      success: false, 
-      message: err.message 
+    res.status(500).json({
+      success: false,
+      message: "Server error: " + err.message,
     });
   }
 };
@@ -45,30 +62,40 @@ export const login = async (req, res) => {
 
   try {
     const user = await User.findOne({ email });
-    console.log(user);
 
-    if (!user || !user.isVerified) {
+    if (!user) {
       return res.status(401).json({
         success: false,
-        message: "Invalid credentials or account not verified",
+        message: "User not found. Please check your email.",
+      });
+    }
+
+    if (!user.isVerified) {
+      return res.status(401).json({
+        success: false,
+        message: "Account not verified. Please verify your account to proceed.",
       });
     }
 
     if (user.role === "studycenter_user") {
-      const studyCenter = await StudyCenter.findById(user.StudycenterId);
+      const studyCenter = await StudyCenter.findById(user.studycenterId);
+      console.log(studyCenter);
       if (!studyCenter) {
         return res.status(401).json({
           success: false,
-          message: "Study center not found",
+          message: "Associated study center not found.",
         });
       }
-      console.log(studyCenter);
 
       const currentDate = new Date();
-      if (currentDate > studyCenter.renewalDate) {
+      if (
+        !studyCenter.renewalDate ||
+        currentDate > new Date(studyCenter.renewalDate)
+      ) {
         return res.status(401).json({
           success: false,
-          message: "Study center subscription has expired. Please renew your subscription.",
+          message:
+            "Study center subscription has expired. Please renew your subscription.",
         });
       }
     }
@@ -77,26 +104,26 @@ export const login = async (req, res) => {
     if (!isMatch) {
       return res.status(401).json({
         success: false,
-        message: "Invalid email or password",
+        message: "Invalid email or password.",
       });
     }
 
     const token = jwt.sign(
       { id: user._id, isAdmin: user.isAdmin },
       process.env.JWT_SECRET,
-      { expiresIn: '7d' }
+      { expiresIn: "7d" }
     );
 
-    res.cookie('token', token, {
+    res.cookie("token", token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
     res.status(200).json({
       success: true,
-      message: 'Login successful',
+      message: "Login successful",
       data: {
         user: {
           name: user.name,
@@ -110,10 +137,11 @@ export const login = async (req, res) => {
   } catch (err) {
     res.status(500).json({
       success: false,
-      message: err.message,
+      message: "Internal server error: " + err.message,
     });
   }
 };
+
 
 // is Outh
 export const isOuth = async (req, res) => {
