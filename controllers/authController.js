@@ -77,13 +77,14 @@ export const login = async (req, res) => {
       });
     }
 
+    let studyCenter = null;
+
     if (user.role === "studycenter_user") {
-      const studyCenter = await StudyCenter.findById(user.studycenterId);
-      console.log(studyCenter);
+      studyCenter = await StudyCenter.findById(user.studycenterId);
       if (!studyCenter) {
         return res.status(401).json({
           success: false,
-          message: "Associated study center not found.",
+          message: "study center not found.",
         });
       }
 
@@ -95,7 +96,7 @@ export const login = async (req, res) => {
         return res.status(401).json({
           success: false,
           message:
-            "Study center subscription has expired. Please renew your subscription.",
+            "Study center subscription has expired.",
         });
       }
     }
@@ -131,6 +132,20 @@ export const login = async (req, res) => {
           role: user.role,
           profileImg: user.profileImg,
           isAdmin: user.isAdmin,
+          ...(user.role === "studycenter_user" && {
+            studyCenter: {
+              id: studyCenter._id,
+              name: studyCenter.name,
+              regNo: studyCenter.regNo,
+              renewalDate: studyCenter.renewalDate,
+              isVerified: studyCenter.isVerified,
+              isActive: studyCenter.isActive,
+              city: studyCenter.city,
+              state: studyCenter.state,
+              centerHead: studyCenter.centerHead,
+              atcId: studyCenter.atcId,
+            },
+          }),
         },
       },
     });
@@ -141,6 +156,7 @@ export const login = async (req, res) => {
     });
   }
 };
+
 
 
 // is Outh

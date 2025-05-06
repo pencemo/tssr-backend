@@ -78,3 +78,27 @@ export const addStudyCenter = async (req, res) => {
     });
   }
 };
+
+export const getVerifiedActiveStudyCenters = async (req, res) => {
+  try {
+    const currentDate = new Date();
+
+    const studyCenters = await StudyCenter.find({
+      isVerified: true,
+      isActive: true,
+      renewalDate: { $gt: currentDate },
+    }).populate("courses");
+
+    res.status(200).json({
+      success: true,
+      message:
+        "Verified, active, and non-expired study centers fetched successfully.",
+      data: studyCenters,
+    });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: "Server error: " + err.message,
+    });
+  }
+};
