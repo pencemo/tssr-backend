@@ -45,7 +45,7 @@ export const createSubject = async (req, res) => {
   }
 };
 
-// Update subject
+
 export const updateSubject = async (req, res) => {
   const { id } = req.params;
 
@@ -67,7 +67,7 @@ export const updateSubject = async (req, res) => {
   }
 };
 
-// Delete subject
+
 export const deleteSubject = async (req, res) => {
   try {
     const subject = await Subject.findById(req.params.id);

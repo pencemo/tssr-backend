@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import StudyCenter from "../models/studyCenterSchema.js"; // adjust the path if needed
 
 export const addStudyCenter = async (req, res) => {
@@ -12,6 +13,8 @@ export const addStudyCenter = async (req, res) => {
       state,
       centerHead,
       atcId,
+      email,
+      phoneNumber,
       //   courses,
       regNo,
       isApproved,
@@ -28,7 +31,9 @@ export const addStudyCenter = async (req, res) => {
       state,
       centerHead,
       atcId,
-    //   courses,
+      email,
+      phoneNumber,
+      //   courses,
       regNo,
     };
 
@@ -51,6 +56,8 @@ export const addStudyCenter = async (req, res) => {
       state,
       centerHead,
       atcId,
+      email,
+      phoneNumber,
       //   courses,
       regNo,
       isApproved: isApproved !== undefined ? isApproved : true,
@@ -90,8 +97,7 @@ export const getVerifiedActiveStudyCenters = async (req, res) => {
 
     // Query with filters and pagination
     const studyCenters = await StudyCenter.find({
-      isVerified: true,
-      isActive: true,
+      isApproved: true,
       renewalDate: { $gt: currentDate },
     })
       .populate("courses")
@@ -100,8 +106,7 @@ export const getVerifiedActiveStudyCenters = async (req, res) => {
 
     // Total count (for frontend pagination UI)
     const total = await StudyCenter.countDocuments({
-      isVerified: true,
-      isActive: true,
+      isApproved: true,
       renewalDate: { $gt: currentDate },
     });
 
@@ -122,6 +127,38 @@ export const getVerifiedActiveStudyCenters = async (req, res) => {
   }
 };
 
+export const getStudyCenterById = async (req, res) => {
+  const { id } = req.params;
+
+  // Validate ObjectId
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid Study Center ID",
+    });
+  }
+
+  try {
+    const studyCenter = await StudyCenter.findById(id);
+
+    if (!studyCenter) {
+      return res.status(404).json({
+        success: false,
+        message: "Study Center not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: studyCenter,
+    });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: "Server error: " + err.message,
+    });
+  }
+};
 
 
 

@@ -8,6 +8,10 @@ const StudycenterSchema = new Schema(
       type: String,
       required: true,
     },
+    email: {
+      type: String,
+      required: true,
+    },
     renewalDate: {
       type: Date,
       required: true,
@@ -56,7 +60,7 @@ const StudycenterSchema = new Schema(
       type: String,
       required: true,
       unique: true,
-    }
+    },
   },
   {
     timestamps: true,
