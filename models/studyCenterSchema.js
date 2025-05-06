@@ -12,11 +12,15 @@ const StudycenterSchema = new Schema(
       type: Date,
       required: true,
     },
+    phoneNumber: {
+      type: Number,
+      required: true,
+    },
     website: {
       type: String,
       default: "",
     },
-    isVerified: {
+    isApproved: {
       type: Boolean,
       default: true,
     },
@@ -52,11 +56,7 @@ const StudycenterSchema = new Schema(
       type: String,
       required: true,
       unique: true,
-    },
-    isActive: {
-      type: Boolean,
-      default: true,
-    },
+    }
   },
   {
     timestamps: true,

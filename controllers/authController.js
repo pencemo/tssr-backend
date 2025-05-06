@@ -10,10 +10,8 @@ export const signUp = async (req, res) => {
     email,
     password,
     phoneNumber,
-    franchiseId,
     role,
     profileImg,
-    studycenterId, 
   } = req.body;
 
   try {
@@ -35,17 +33,16 @@ export const signUp = async (req, res) => {
       email,
       password: hashedPassword,
       phoneNumber,
-      franchiseId,
       role: role || "user",
       profileImg: profileImg || "",
-      studycenterId, // ✅ Save studyCenterId reference
       isVerified: true,
+      isAdmin: false,
     });
 
     res.status(201).json({
       success: true,
       message: "User registered successfully",
-      userId: user._id,
+      data: user._id,
     });
   } catch (err) {
     res.status(500).json({

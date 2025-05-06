@@ -12,9 +12,9 @@ export const addStudyCenter = async (req, res) => {
       state,
       centerHead,
       atcId,
-    //   courses,
+      //   courses,
       regNo,
-      isVerified,
+      isApproved,
       isActive,
     } = req.body;
 
@@ -51,9 +51,9 @@ export const addStudyCenter = async (req, res) => {
       state,
       centerHead,
       atcId,
-    //   courses,
+      //   courses,
       regNo,
-      isVerified: isVerified !== undefined ? isVerified : true,
+      isApproved: isApproved !== undefined ? isApproved : true,
       isActive: isActive !== undefined ? isActive : true,
     });
 
@@ -83,16 +83,35 @@ export const getVerifiedActiveStudyCenters = async (req, res) => {
   try {
     const currentDate = new Date();
 
+    // Get page and limit from query params, default to page=1 and limit=10
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    // Query with filters and pagination
     const studyCenters = await StudyCenter.find({
       isVerified: true,
       isActive: true,
       renewalDate: { $gt: currentDate },
-    }).populate("courses");
+    })
+      .populate("courses")
+      .skip(skip)
+      .limit(limit);
+
+    // Total count (for frontend pagination UI)
+    const total = await StudyCenter.countDocuments({
+      isVerified: true,
+      isActive: true,
+      renewalDate: { $gt: currentDate },
+    });
 
     res.status(200).json({
       success: true,
       message:
         "Verified, active, and non-expired study centers fetched successfully.",
+      currentPage: page,
+      totalPages: Math.ceil(total / limit),
+      totalItems: total,
       data: studyCenters,
     });
   } catch (err) {
@@ -102,3 +121,10 @@ export const getVerifiedActiveStudyCenters = async (req, res) => {
     });
   }
 };
+
+
+
+
+
+
+
