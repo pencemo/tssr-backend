@@ -89,7 +89,7 @@ export const addStudyCenter = async (req, res) => {
 export const getVerifiedActiveStudyCenters = async (req, res) => {
   try {
     const currentDate = new Date();
-
+    
     // Get page and limit from query params, default to page=1 and limit=10
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;

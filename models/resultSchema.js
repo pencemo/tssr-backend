@@ -20,6 +20,15 @@ const resultSchema = new Schema(
       enum: ["Pass", "Fail"],
       default: "Pass",
     },
+    marks: {
+      type: Number,
+      required: true,
+    },
+    subjectId: {
+      type: Schema.Types.ObjectId,
+      ref: "Subject",
+      required: true,
+    },
   },
   {
     timestamps: true,
