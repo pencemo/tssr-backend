@@ -11,7 +11,15 @@ const HallTicketSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    examDate: {
+    ExamStartDate: {
+      type: Date,
+      required: true,
+    },
+    ExamEndDate: {
+      type: Date,
+      required: true,
+    },
+    examTime: {
       type: Date,
       required: true,
     },

@@ -89,26 +89,35 @@ export const addStudyCenter = async (req, res) => {
 export const getVerifiedActiveStudyCenters = async (req, res) => {
   try {
     const currentDate = new Date();
-    
-    // Get page and limit from query params, default to page=1 and limit=10
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    // Query with filters and pagination
-    const studyCenters = await StudyCenter.find({
+    const searchQuery = req.query.search || "";
+
+    // Build the search condition
+    const searchCondition = searchQuery
+      ? {
+          $or: [
+            { studyCenterName: { $regex: searchQuery, $options: "i" } },
+            { email: { $regex: searchQuery, $options: "i" } },
+          ],
+        }
+      : {};
+
+    // Final query condition
+    const queryCondition = {
       isApproved: true,
       renewalDate: { $gt: currentDate },
-    })
+      ...searchCondition,
+    };
+
+    const studyCenters = await StudyCenter.find(queryCondition)
       .populate("courses")
       .skip(skip)
       .limit(limit);
 
-    // Total count (for frontend pagination UI)
-    const total = await StudyCenter.countDocuments({
-      isApproved: true,
-      renewalDate: { $gt: currentDate },
-    });
+    const total = await StudyCenter.countDocuments(queryCondition);
 
     res.status(200).json({
       success: true,
@@ -126,6 +135,7 @@ export const getVerifiedActiveStudyCenters = async (req, res) => {
     });
   }
 };
+
 
 export const getStudyCenterById = async (req, res) => {
   const { id } = req.params;

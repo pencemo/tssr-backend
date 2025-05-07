@@ -86,6 +86,7 @@ export const updateCourse = async (req, res) => {
         message: "Course not found",
       });
     }
+    console.log(course);
 
     // Update fields
     course.courseName = req.body.courseName || course.courseName;
@@ -103,9 +104,10 @@ export const updateCourse = async (req, res) => {
       data: updatedCourse,
     });
   } catch (error) {
+    console.log(error.message);
     res.status(500).json({
       success: false,
-      message: "Failed to update course",
+      message: "Failed to update course"
     });
   }
 };

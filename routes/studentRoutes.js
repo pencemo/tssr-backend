@@ -3,8 +3,8 @@ import { getAllStudents, getStudentById, updateStudent } from "../controllers/st
 const router = express.Router();
 
 
-router.get('/', getAllStudents);
-router.get('/:id', getStudentById);
-router.put('/:id', updateStudent);
+router.get('/getAllStudents', getAllStudents);
+router.get('/getStudentById/:id', getStudentById);
+router.put('/updateStudent/:id', updateStudent);
 export default router;
 
