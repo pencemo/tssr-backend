@@ -33,7 +33,7 @@ const studentSchema = new Schema(
         type: String,
         required: true,
       },
-      city: {
+      district: {
         type: String,
         required: true,
       },
@@ -63,11 +63,6 @@ const studentSchema = new Schema(
       ref: "Studycenter",
       required: true,
     },
-    courseId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Course",
-      required: true,
-    },
     registrationNumber: {
       type: String,
       required: true,
@@ -77,10 +72,10 @@ const studentSchema = new Schema(
       type: Date,
       required: true,
     },
-    batch: {
-      type: String,
-      required: true,
-    },
+    // batch: {
+    //   type: String,
+    //   required: true,
+    // },
     parentName: {
       type: String,
       required: true,

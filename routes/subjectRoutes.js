@@ -11,10 +11,10 @@ import {
 const router = express.Router();
 
 // Subject Routes
-router.get("/getallsubjects", getAllSubjects);
+router.get("/getAllSubjects", getAllSubjects);
 router.get("/getsubjectbyid/:id", getSubjectById);
 router.post("/create", createSubject);
-router.put("/update/:id", updateSubject);
+router.put("/update", updateSubject);
 router.delete("/delete/:id", deleteSubject);
 
 export default router;

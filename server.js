@@ -12,17 +12,38 @@ import cookieParser from "cookie-parser";
 import  studycenterRoute  from "./routes/studycenterRoute.js";
 dotenv.config();
 const app = express();
-
+app.use(cookieParser());
 // CORS Options
 const corsOptions = {
-  origin: "http://localhost:5173", // allow your frontend origin
+  origin: true, // allow your frontend origin
   credentials: true, // allow sending cookies
 };
 
 // Middleware
 app.use(express.json());
-app.use(cors(corsOptions));
-app.use(cookieParser());
+app.use(express.urlencoded({ extended: true }));
+
+// app.use(cors(corsOptions));
+app.use(cors({
+    // origin: process.env.FRONTEND_URL,
+    origin: (origin, callback) => {
+      const allowedOrigins = [
+        'http://192.168.1.2:5173',
+          'http://localhost:5173'
+      ];
+      
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) return callback(null, true);
+      
+      if (allowedOrigins.includes(origin)) {
+          return callback(null, true);
+      }
+      
+      return callback(new Error(`Not allowed by CORS for origin: ${origin}`), false);
+  },
+    credentials: true,
+    methods: ["GET", "POST","PUT","DELETE"],
+}))
 app.use(morgan("dev"));
 
 // Routes
@@ -32,9 +53,14 @@ app.use("/api/subject", subjectRoutes);
 app.use("/api/course", courseRoutes);
 app.use("/api/result", resultRoutes);
 app.use("/api/studycenter", studycenterRoute);
+app.use('/', (req,res) => {
+  res.send("This api not listed");
+})
 // Connect to MongoDB
 connectDB();
 
 // Start server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, "0.0.0.0", () =>
+  console.log(`Server running on port ${PORT}`)
+);

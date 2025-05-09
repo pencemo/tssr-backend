@@ -3,19 +3,22 @@ import Course from "../models/courseSchema.js";
 // Get all courses
 export const getAllCourses = async (req, res) => {
   try {
-    const courses = await Course.find().populate("subjects", "name code");
+    const courses = await Course.find({ isActive: true });
     res.status(200).json({
       success: true,
-      message: "Fetched all courses",
+      message: "Fetched active courses",
       data: courses,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
       message: "Failed to fetch courses",
+      error: error.message,
     });
   }
 };
+
+
 
 // Get single course by id
 export const getCourseById = async (req, res) => {
@@ -43,24 +46,28 @@ export const getCourseById = async (req, res) => {
 // Create new course
 export const createCourse = async (req, res) => {
   try {
-    const { courseName, manualId, category, batch, duration, subjects } = req.body;
-    
-    // Check if course with same manualId already exists
-    const existingCourse = await Course.findOne({ manualId });
+    console.log(req.body);
+    const { name, category, duration, subjects } = req.body;
+
+    // Optional: Check if course with the same name already exists (if needed)
+    const existingCourse = await Course.findOne({ name });
     if (existingCourse) {
-      return res.status(400).json({ message: "Course with this manual ID already exists" });
+      return res.status(400).json({
+        success: false,
+        message: "Course with this name already exists",
+      });
     }
 
     const course = new Course({
-      courseName,
-      manualId,
+      name,
       category,
-      batch,
       duration,
-      subjects
+      subjects,
+      isActive: true,
     });
-
+    
     const savedCourse = await course.save();
+
     res.status(201).json({
       success: true,
       message: "Course created successfully",
@@ -70,6 +77,7 @@ export const createCourse = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to create course",
+      error: error.message,
     });
   }
 };

@@ -1,40 +1,61 @@
 import mongoose from "mongoose";
 import StudyCenter from "../models/studyCenterSchema.js"; // adjust the path if needed
+import bcrypt from "bcryptjs";
+import moment from "moment";
+import User from "../models/userSchema.js";
+
 
 export const addStudyCenter = async (req, res) => {
+  console.log(req.body);
   try {
     const {
       name,
       renewalDate,
-      website,
       place,
       pincode,
-      city,
+      district,
       state,
       centerHead,
-      atcId,
       email,
+      authEmail,
       phoneNumber,
-      //   courses,
-      regNo,
-      isApproved,
-      isActive,
+      courses,
+      password,
     } = req.body;
 
-    // Validate required fields
+    // === Email format validation ===
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid email address",
+      });
+    }
+
+    // === Check if email already exists ===
+    const emailExistsInUser = await User.findOne({ authEmail });
+    const emailExistsInCenter = await StudyCenter.findOne({ email });
+
+    if (emailExistsInUser || emailExistsInCenter) {
+      return res.status(400).json({
+        success: false,
+        message: "Email already exists in the system",
+      });
+    }
+
+    // === Validate required fields ===
     const requiredFields = {
       name,
       renewalDate,
       place,
       pincode,
-      city,
+      district,
       state,
       centerHead,
-      atcId,
       email,
+      authEmail,
       phoneNumber,
-      //   courses,
-      regNo,
+      password,
     };
 
     for (const [key, value] of Object.entries(requiredFields)) {
@@ -46,39 +67,68 @@ export const addStudyCenter = async (req, res) => {
       }
     }
 
+    // === Generate atcId in format ABC/XYZ/YYYYMMDD ===
+    const formattedDate = new Date()
+      .toISOString()
+      .slice(0, 10)
+      .replace(/-/g, "");
+    const atcId = `${name.slice(0, 3).toUpperCase()}/${district
+      .slice(0, 3)
+      .toUpperCase()}/${formattedDate}`;
+
+    // === Generate regNo ===
+    let lastCenter = await StudyCenter.findOne().sort({ createdAt: -1 });
+    let newRegNo = "1001";
+    if (lastCenter && lastCenter.regNo) {
+      const lastReg = parseInt(lastCenter.regNo);
+      if (!isNaN(lastReg)) {
+        newRegNo = (lastReg + 1).toString();
+      }
+    }
+
+    // === Create StudyCenter ===
     const newStudyCenter = new StudyCenter({
       name,
       renewalDate: new Date(renewalDate),
-      website,
       place,
       pincode,
-      city,
+      district,
       state,
       centerHead,
       atcId,
+      regNo: newRegNo,
       email,
       phoneNumber,
-      //   courses,
-      regNo,
-      isApproved: isApproved !== undefined ? isApproved : true,
-      isActive: isActive !== undefined ? isActive : true,
+      courses,
+      isApproved: true,
+      isActive: true,
     });
 
-    await newStudyCenter.save();
+    const savedCenter = await newStudyCenter.save();
+
+    // === Create related User ===
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const newUser = new User({
+      name: centerHead,
+      email:authEmail,
+      password: hashedPassword,
+      role: "studycenter_user",
+      phoneNumber,
+      studycenterId: savedCenter._id,
+      isAdmin: false,
+      isVerified: true,
+      isActive: true,
+    });
+
+    await newUser.save();
 
     res.status(201).json({
       success: true,
-      message: "Study center added successfully.",
-      data: newStudyCenter,
+      message: "Study center and user created successfully.",
+      data: savedCenter,
     });
   } catch (err) {
-    if (err.code === 11000 && err.keyPattern?.regNo) {
-      return res.status(400).json({
-        success: false,
-        message: "Registration number already exists.",
-      });
-    }
-
     res.status(500).json({
       success: false,
       message: "Server error: " + err.message,
@@ -94,13 +144,16 @@ export const getVerifiedActiveStudyCenters = async (req, res) => {
     const skip = (page - 1) * limit;
 
     const searchQuery = req.query.search || "";
+    console.log(searchQuery);
 
     // Build the search condition
     const searchCondition = searchQuery
       ? {
           $or: [
-            { studyCenterName: { $regex: searchQuery, $options: "i" } },
+            { name: { $regex: searchQuery, $options: "i" } },
             { email: { $regex: searchQuery, $options: "i" } },
+            { atcId: { $regex: searchQuery, $options: "i" } },
+           
           ],
         }
       : {};
@@ -114,6 +167,7 @@ export const getVerifiedActiveStudyCenters = async (req, res) => {
 
     const studyCenters = await StudyCenter.find(queryCondition)
       .populate("courses")
+      .sort({ createdAt: -1 }) // ✅ Sort by oldest first
       .skip(skip)
       .limit(limit);
 
@@ -136,9 +190,8 @@ export const getVerifiedActiveStudyCenters = async (req, res) => {
   }
 };
 
-
 export const getStudyCenterById = async (req, res) => {
-  const { id } = req.params;
+  const { id } = req.query;
 
   // Validate ObjectId
   if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -169,7 +222,75 @@ export const getStudyCenterById = async (req, res) => {
     });
   }
 };
+export const updateStudyCenter = async (req, res) => {
+  try {
+    const { id } = req.query;
+    console.log(id);
+    console.log(req.body);
+    // Extract only allowed fields from the request body
+    const {
+      name,
+      renewalDate,
+      place,
+      pincode,
+      district,
+      state,
+      centerHead,
+      email,
+      phoneNumber,
+      courses,
+      isActive,
+      isApproved,
+    } = req.body;
+    
+    // === Email format check ===
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid email address",
+      });
+    }
 
+    // === Update StudyCenter ===
+    const updatedCenter = await StudyCenter.findByIdAndUpdate(
+      id,
+      {
+        name,
+        renewalDate: new Date(renewalDate),
+        place,
+        pincode,
+        district,
+        state,
+        centerHead,
+        email,
+        phoneNumber,
+        courses,
+        isApproved,
+        isActive,
+      },
+      { new: true }
+    );
+
+    if (!updatedCenter) {
+      return res.status(404).json({
+        success: false,
+        message: "Study center not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Study center updated successfully",
+      data: updatedCenter,
+    });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: "Server error: " + err.message,
+    });
+  }
+};
 
 
 

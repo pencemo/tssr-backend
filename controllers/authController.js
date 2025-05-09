@@ -73,6 +73,13 @@ export const login = async (req, res) => {
         message: "Account not verified. Please verify your account to proceed.",
       });
     }
+    if (!user.isActive) {
+      return res.status(401).json({
+        success: false,
+        message:
+          "Account not activated",
+      });
+      }
 
     let studyCenter = null;
 
@@ -87,13 +94,31 @@ export const login = async (req, res) => {
 
       const currentDate = new Date();
       if (
-        !studyCenter.renewalDate ||
+        !studyCenter.renewalDate || 
         currentDate > new Date(studyCenter.renewalDate)
       ) {
+        // If the renewal date is not set or has passed, set the study center to inactive
+        studyCenter.isActive = false;
+        await studyCenter.save();
+
         return res.status(401).json({
           success: false,
           message:
             "Study center subscription has expired.",
+        });
+      }
+      if(studyCenter.isActive === false){
+        return res.status(401).json({
+          success: false,
+          message:
+            "Study center currently not available",
+        });
+      }
+      if(studyCenter.isApproved === false){ 
+        return res.status(401).json({
+          success: false,
+          message:
+            "Study center is not approved.",
         });
       }
     }
@@ -112,12 +137,13 @@ export const login = async (req, res) => {
       { expiresIn: "7d" }
     );
 
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    });
+res.cookie("token", token, {
+  httpOnly: true,
+  secure: false,
+  sameSite: "None",
+  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+});
+
 
     res.status(200).json({
       success: true,

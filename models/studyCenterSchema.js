@@ -20,14 +20,6 @@ const StudycenterSchema = new Schema(
       type: Number,
       required: true,
     },
-    website: {
-      type: String,
-      default: "",
-    },
-    isApproved: {
-      type: Boolean,
-      default: true,
-    },
     place: {
       type: String,
       required: true,
@@ -36,7 +28,7 @@ const StudycenterSchema = new Schema(
       type: String,
       required: true,
     },
-    city: {
+    district: {
       type: String,
       required: true,
     },
@@ -55,11 +47,18 @@ const StudycenterSchema = new Schema(
     courses: [
       { type: mongoose.Schema.Types.ObjectId, ref: "Course", required: true },
     ],
-
     regNo: {
       type: String,
       required: true,
       unique: true,
+    },
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
+    isApproved: {
+      type: Boolean,
+      default: true,
     },
   },
   {
