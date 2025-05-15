@@ -1,5 +1,6 @@
 import Course from "../models/courseSchema.js";
-
+import Batch from "../models/batchSchema.js";
+import mongoose from "mongoose";
 // Get all courses
 export const getAllCourses = async (req, res) => {
   try {
@@ -17,8 +18,6 @@ export const getAllCourses = async (req, res) => {
     });
   }
 };
-
-
 
 // Get single course by id
 export const getCourseById = async (req, res) => {
@@ -82,64 +81,39 @@ export const createCourse = async (req, res) => {
   }
 };
 
-// Update course
-export const updateCourse = async (req, res) => {
-  const { id } = req.params;
+export const updateCourseById = async (req, res) => {
+  const { id } = req.query;
+  const { name, duration, category, subjects, isActive } = req.body;
+  
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ error: "Invalid course ID" });
+  }
 
   try {
-    const course = await Course.findById(id);
-    if (!course) {
-      return res.status(404).json({
-        success: false,
-        message: "Course not found",
-      });
+    const updatedCourse = await Course.findByIdAndUpdate(
+      id,
+      {
+        name,
+        duration,
+        category,
+        subjects,
+        isActive,
+      },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedCourse) {
+      return res.status(404).json({ error: "Course not found" });
     }
-    console.log(course);
 
-    // Update fields
-    course.courseName = req.body.courseName || course.courseName;
-    course.manualId = req.body.manualId || course.manualId;
-    course.category = req.body.category || course.category;
-    course.batch = req.body.batch || course.batch;
-    course.duration = req.body.duration || course.duration;
-    course.subjects = req.body.subjects || course.subjects;
-    course.isActive = req.body.isActive !== undefined ? req.body.isActive : course.isActive;
-
-    const updatedCourse = await course.save();
-    res.status(200).json({
-      success: true,
+    return res.status(200).json({
       message: "Course updated successfully",
+      success: true,
       data: updatedCourse,
     });
   } catch (error) {
-    console.log(error.message);
-    res.status(500).json({
-      success: false,
-      message: "Failed to update course"
-    });
+    console.error("editCourseById error:", error);
+    return res.status(500).json({ error: "Internal server error" ,success: false});
   }
 };
 
-// Delete course
-export const deleteCourse = async (req, res) => {
-  try {
-    const course = await Course.findById(req.params.id);
-    if (!course) {
-      return res.status(404).json({
-        success: false,
-        message: "Course not found",
-      });
-    }
-
-    await Course.findByIdAndDelete(req.params.id);
-    res.status(200).json({
-      success: true,
-      message: "Course deleted successfully",
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Failed to delete course",
-    });
-  }
-}; 

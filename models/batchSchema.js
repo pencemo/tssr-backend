@@ -25,6 +25,14 @@ const batchSchema = new mongoose.Schema(
       ],
       required: true,
     },
+    startDate: {
+      type: Date,
+      
+    },
+    endDate: {
+      type: Date,
+      
+    },
     isAdmissionStarted: {
       type: Boolean,
       default: false,

@@ -52,8 +52,6 @@ export const signUp = async (req, res) => {
   }
 };
 
-
-
 export const login = async (req, res) => {
   const { email, password } = req.body;
 
@@ -163,7 +161,9 @@ res.cookie("token", token, {
               renewalDate: studyCenter.renewalDate,
               isVerified: studyCenter.isVerified,
               isActive: studyCenter.isActive,
-              city: studyCenter.city,
+              place: studyCenter.place,
+              district: studyCenter.district,
+              pincode:studyCenter.pincode,
               state: studyCenter.state,
               centerHead: studyCenter.centerHead,
               atcId: studyCenter.atcId,
@@ -179,9 +179,6 @@ res.cookie("token", token, {
     });
   }
 };
-
-
-
 // is Outh
 export const isOuth = async (req, res) => {
   if(!req.user){

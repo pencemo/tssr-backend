@@ -222,6 +222,7 @@ export const getStudyCenterById = async (req, res) => {
     });
   }
 };
+
 export const updateStudyCenter = async (req, res) => {
   try {
     const { id } = req.query;
@@ -291,6 +292,29 @@ export const updateStudyCenter = async (req, res) => {
     });
   }
 };
+
+export const getAllStudyCenterForExcel = async (req, res) => {
+  try {
+    const studyCenters = await StudyCenter.find()
+      .sort({ createdAt: -1 })
+      .select("-__v  -updatedAt")
+      .populate("courses", "name -_id"); // this will replace _id with { _id, courseName }
+
+    return res.status(200).json({
+      success: true,
+      message: `${studyCenters.length} study center(s) ready for Excel export`,
+      data: studyCenters,
+    });
+  } catch (error) {
+    console.error("Error fetching study centers for Excel:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch study centers for Excel",
+      data: [],
+    });
+  }
+};
+
 
 
 
