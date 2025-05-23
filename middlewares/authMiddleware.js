@@ -2,6 +2,7 @@ import jwt from 'jsonwebtoken';
 
 export const isAuthenticated = (req, res, next) => {
   const token = req.cookies?.token;
+  //console.log('Token:', token);
   if (!token) {
     return res.status(401).json({
       success: false,
@@ -15,6 +16,7 @@ export const isAuthenticated = (req, res, next) => {
       id: decoded.id,
       isAdmin: decoded.isAdmin,
     };
+    console.log('User ID:', req.user.id);
     //console.log('Decoded token:', decoded);
     next();
   } catch (err) {

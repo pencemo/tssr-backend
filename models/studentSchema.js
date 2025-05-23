@@ -26,9 +26,7 @@ const studentSchema = new Schema(
     phoneNumber: {
       type: String,
       required: true,
-      match: [/^\+?[1-9]\d{1,14}$/, "Please provide a valid phone number"],
     },
-    address: {
       place: {
         type: String,
         required: true,
@@ -45,18 +43,15 @@ const studentSchema = new Schema(
         type: String,
         required: true,
       },
-    },
     email: {
       type: String,
       required: true,
-      unique: true,
       match: [/.+\@.+\..+/, "Please provide a valid email address"],
     },
     adhaarNumber: {
       type: String,
       required: true,
       unique: true,
-      match: [/^\d{12}$/, "Please enter a valid 12-digit Aadhaar number"],
     },
     studyCenterId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -66,16 +61,11 @@ const studentSchema = new Schema(
     registrationNumber: {
       type: String,
       required: true,
-      unique: true,
     },
     dateOfAdmission: {
       type: Date,
       required: true,
     },
-    // batch: {
-    //   type: String,
-    //   required: true,
-    // },
     parentName: {
       type: String,
       required: true,

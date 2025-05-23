@@ -2,6 +2,7 @@ import express from "express";
 import {
   addStudyCenter,
   getAllStudyCenterForExcel,
+  getCoursesWithBatchesOfAStudyCenter,
   getStudyCenterById,
   getVerifiedActiveStudyCenters,
   updateStudyCenter,
@@ -10,10 +11,10 @@ import { isAuthenticated } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
-router.post("/addStudyCenter", isAuthenticated, addStudyCenter);
+router.post("/addStudyCenter", addStudyCenter);
 router.get(
   "/getVerifiedStudyCenters",
-   isAuthenticated,
+   
   getVerifiedActiveStudyCenters
 );
 
@@ -29,4 +30,11 @@ router.put(
   isAuthenticated,
   getAllStudyCenterForExcel
 );
+
+router.get(
+  "/getCoursesOfStudyCenter",
+  isAuthenticated,
+  getCoursesWithBatchesOfAStudyCenter 
+);
 export default router;
+

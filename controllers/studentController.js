@@ -1,102 +1,106 @@
 import Course from "../models/courseSchema.js";
+import Enrollment from "../models/enrollmentSchema.js";
 import Student from "../models/studentSchema.js";
 import Studycenter from "../models/studyCenterSchema.js";
 
-export const getAllStudents = async (req, res) => {
+
+
+export const getStudyCenterStudents = async (req, res) => {
   try {
-    const centers = await Student.find().populate(
-      "studyCenterId courseId",
-      "name courseName"
-    );
-    res.status(200).json({
-      success: true,
-      message: "Fetched all students",
-      data: centers,
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: "Error retrieving students",
-    });
-  }
-};
+    const studycenterId = req.user.id;
 
-// get single student by id
-export const getStudentById = async (req, res) => {
-  try {
-    const student = await Student.findById(req.params.id).populate(
-      "studyCenterId courseId",
-      "name courseName"
-    );
-    if (!student) {
-      return res.status(404).json({
-        success: false,
-        message: "Student not found",
-      });
-    }
-    res.status(200).json({
-      success: true,
-      message: "Fetched student",
-      data: student,
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: "Error retrieving student",
-    });
-  }
-};
+    const {
+      batchId,
+      courseId,
+      year,
+      search = "",
+      sortBy = "student.name",
+      order = "asc",
+      page = 1,
+      limit = 10,
+    } = req.query;
 
-export const updateStudent = async (req, res) => {
-  const { id } = req.params;
-
-  try {
-    const student = await Student.findById(id);
-
-    if (!student) {
-      return res.status(404).json({
-        success: false,
-        message: "Student not found",
-      });
-    }
-
-    // Manual field-by-field update (with basic validation)
-    student.name = req.body.name || student.name;
-    student.age = req.body.age || student.age;
-    student.dateOfBirth = req.body.dateOfBirth || student.dateOfBirth;
-    student.gender = req.body.gender || student.gender;
-    student.phoneNumber = req.body.phoneNumber || student.phoneNumber;
-    student.address = {
-      place: req.body.address?.place || student.address.place,
-      city: req.body.address?.city || student.address.city,
-      state: req.body.address?.state || student.address.state,
-      pincode: req.body.address?.pincode || student.address.pincode,
+    const filter = {
+      studycenterId,
     };
-    student.email = req.body.email || student.email;
-    student.adhaarNumber = req.body.adhaarNumber || student.adhaarNumber;
-    student.studyCenterId = req.body.studyCenterId || student.studyCenterId;
-    student.courseId = req.body.courseId || student.courseId;
-    student.registrationNumber =
-      req.body.registrationNumber || student.registrationNumber;
-    student.dateOfAdmission =
-      req.body.dateOfAdmission || student.dateOfAdmission;
-    student.batch = req.body.batch || student.batch;
-    student.parentName = req.body.parentName || student.parentName;
-    student.qualification = req.body.qualification || student.qualification;
-    student.sslc = req.body.sslc || student.sslc;
-    student.profileImage = req.body.profileImage || student.profileImage;
 
-    await student.save();
+    if (batchId) filter.batchId = batchId;
+    if (courseId) filter.courseId = courseId;
+    if (year) filter.year = parseInt(year);
 
-    res.status(200).json({
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    // Fetch enrollments and populate related fields
+    const enrollments = await Enrollment.find(filter)
+      .populate({
+        path: "studentId",
+        select: "name email phoneNumber registrationNumber profileImage",
+        match: {
+          $or: [
+            { name: new RegExp(search, "i") },
+            { phoneNumber: new RegExp(search, "i") },
+            { registrationNumber: new RegExp(search, "i") },
+          ],
+        },
+      })
+      .populate({
+        path: "batchId",
+        select: "month",
+      })
+      .populate({
+        path: "courseId",
+        select: "name",
+      })
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    // Filter out enrollments where student didn't match search
+    let filtered = enrollments.filter((en) => en.studentId);
+
+    // Sort based on student name or phone number
+    filtered = filtered.sort((a, b) => {
+      const valA =
+        sortBy === "student.phoneNumber"
+          ? a.studentId.phoneNumber || ""
+          : a.studentId.name?.toLowerCase() || "";
+
+      const valB =
+        sortBy === "student.phoneNumber"
+          ? b.studentId.phoneNumber || ""
+          : b.studentId.name?.toLowerCase() || "";
+
+      return order === "desc"
+        ? valB.localeCompare(valA)
+        : valA.localeCompare(valB);
+    });
+
+    // Total count for pagination (only count matching students)
+    const total = await Enrollment.countDocuments(filter);
+
+    // Format final data for response (if needed)
+    const formatted = filtered.map((en) => ({
+      studentName: en.studentId.name,
+      email: en.studentId.email,
+      phoneNumber: en.studentId.phoneNumber,
+      registrationNumber: en.studentId.registrationNumber,
+      profileImage: en.studentId.profileImage,
+      batchMonth: en.batchId?.month || "",
+      courseName: en.courseId?.name || "",
+      enrollmentId: en._id,
+    }));
+
+    res.json({
       success: true,
-      message: "Student updated successfully",
-      data: student,
+      data: formatted,
+      meta: {
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+      },
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Error updating student",
-    });
+    console.error("Failed to fetch enrolled students:", error);
+    res.status(500).json({ success: false, message: "Server Error" });
   }
 };
+

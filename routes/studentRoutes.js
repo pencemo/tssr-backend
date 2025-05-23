@@ -1,10 +1,10 @@
 import express from "express";
-import { getAllStudents, getStudentById, updateStudent } from "../controllers/studentController.js";
+import {  getStudyCenterStudents } from "../controllers/studentController.js";
+import { isAuthenticated } from "../middlewares/authMiddleware.js";
 const router = express.Router();
 
 
-router.get('/getAllStudents', getAllStudents);
-router.get('/getStudentById/:id', getStudentById);
-router.put('/updateStudent/:id', updateStudent);
+router.get("/getAllStudents", isAuthenticated, getStudyCenterStudents);
+
 export default router;
 

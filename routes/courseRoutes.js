@@ -10,6 +10,7 @@ const router = express.Router();
 
 // Course Routes
 router.get("/getAllCourses", getAllCourses);
+
 router.get("/getcoursebyid/:id", getCourseById);
 router.post("/create", createCourse);
 router.put("/update", updateCourseById);

@@ -53,7 +53,7 @@ export const signUp = async (req, res) => {
 };
 
 export const login = async (req, res) => {
-  const { email, password } = req.body;
+  const {email , password} = req.body;
 
   try {
     const user = await User.findOne({ email });
@@ -128,19 +128,28 @@ export const login = async (req, res) => {
         message: "Invalid email or password.",
       });
     }
-
-    const token = jwt.sign(
-      { id: user._id, isAdmin: user.isAdmin },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" }
-    );
-
-res.cookie("token", token, {
-  httpOnly: true,
-  secure: false,
-  sameSite: "None",
-  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-});
+    var token = true;
+    if (user.role === "admin") {
+       token = jwt.sign(
+        { id: user._id, isAdmin: user.isAdmin },
+        process.env.JWT_SECRET,
+        { expiresIn: "7d" }
+      );
+    } else {
+      
+       token = jwt.sign(
+        { id: studyCenter._id, isAdmin: user.isAdmin },
+        process.env.JWT_SECRET,
+        { expiresIn: "7d" }
+      );
+    }
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: false, // ❗ set to false for localhost (no HTTPS)
+      sameSite: "Lax", // ❗ use "Lax" or "Strict" for localhost (not "None")
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+    
 
 
     res.status(200).json({

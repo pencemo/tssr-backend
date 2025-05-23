@@ -11,6 +11,7 @@ import resultRoutes from "./routes/resultRoutes.js";
 import cookieParser from "cookie-parser";
 import  studycenterRoute  from "./routes/studycenterRoute.js";
 import batchRoutes from "./routes/batchRoutes.js";
+import enrollmentRoutes from "./routes/enrollmentRoutes.js";
 dotenv.config();
 const app = express();
 app.use(cookieParser());
@@ -26,22 +27,22 @@ app.use(express.urlencoded({ extended: true }));
 
 // app.use(cors(corsOptions));
 app.use(cors({
-     origin: process.env.FRONTEND_URL,
-  //   origin: (origin, callback) => {
-  //     const allowedOrigins = [
-  //       'http://192.168.1.3:5173',
-  //         'http://localhost:5173'
-  //     ];
+      //origin: process.env.FRONTEND_URL,
+    origin: (origin, callback) => {
+      const allowedOrigins = [
+          'http://192.168.1.4:5173',
+          'http://localhost:5173'
+      ];
       
-  //     // Allow requests with no origin (like mobile apps or curl requests)
-  //     if (!origin) return callback(null, true);
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) return callback(null, true);
       
-  //     if (allowedOrigins.includes(origin)) {
-  //         return callback(null, true);
-  //     }
+      if (allowedOrigins.includes(origin)) {
+          return callback(null, true);
+      }
       
-  //     return callback(new Error(`Not allowed by CORS for origin: ${origin}`), false);
-  // },
+      return callback(new Error(`Not allowed by CORS for origin: ${origin}`), false);
+  },
     credentials: true,
     methods: ["GET", "POST","PUT","DELETE"],
 }))
@@ -49,12 +50,13 @@ app.use(morgan("dev"));
 
 // Routes
 app.use("/api/auth", authenticationRoutes);
-app.use("/api/student", studentRoutes);
+app.use("/api/students", studentRoutes);
 app.use("/api/subject", subjectRoutes);
 app.use("/api/course", courseRoutes);
 app.use("/api/result", resultRoutes);
 app.use("/api/studycenter", studycenterRoute);
 app.use("/api/batch", batchRoutes);
+app.use("/api/enrollment", enrollmentRoutes);
 app.use('/', (req,res) => {
   res.send("This api not listed");
 })

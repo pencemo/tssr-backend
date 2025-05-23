@@ -3,7 +3,7 @@ import StudyCenter from "../models/studyCenterSchema.js"; // adjust the path if 
 import bcrypt from "bcryptjs";
 import moment from "moment";
 import User from "../models/userSchema.js";
-
+import Batch from "../models/batchSchema.js";
 
 export const addStudyCenter = async (req, res) => {
   console.log(req.body);
@@ -67,24 +67,28 @@ export const addStudyCenter = async (req, res) => {
       }
     }
 
-    // === Generate atcId in format ABC/XYZ/YYYYMMDD ===
-    const formattedDate = new Date()
-      .toISOString()
-      .slice(0, 10)
-      .replace(/-/g, "");
-    const atcId = `${name.slice(0, 3).toUpperCase()}/${district
-      .slice(0, 3)
-      .toUpperCase()}/${formattedDate}`;
+    // === Generate regNo and atcId format: ABC/XYZ/1050 (starts from 1050) ===
+    let newNumber = 1051;
+    let regNo = 50301;
+    const lastCenter = await StudyCenter.findOne().sort({ createdAt: -1 });
 
-    // === Generate regNo ===
-    let lastCenter = await StudyCenter.findOne().sort({ createdAt: -1 });
-    let newRegNo = "1001";
-    if (lastCenter && lastCenter.regNo) {
-      const lastReg = parseInt(lastCenter.regNo);
-      if (!isNaN(lastReg)) {
-        newRegNo = (lastReg + 1).toString();
+    if (lastCenter?.atcId) {
+      const parts = lastCenter.atcId.split("/");
+      const lastNum = parseInt(parts[2]);
+      if (!isNaN(lastNum)) {
+        newNumber = lastNum + 1;
       }
     }
+    if (lastCenter?.regNo) {
+      const lastRegNo = parseInt(lastCenter.regNo);
+      if (!isNaN(lastRegNo)) {
+        regNo = lastRegNo + 1;
+      }
+    }
+
+    const namePart = name.slice(0, 3).toUpperCase();
+    const districtPart = district.slice(0, 3).toUpperCase();
+    const atcId = `${namePart}/${districtPart}/${newNumber}`;
 
     // === Create StudyCenter ===
     const newStudyCenter = new StudyCenter({
@@ -96,7 +100,7 @@ export const addStudyCenter = async (req, res) => {
       state,
       centerHead,
       atcId,
-      regNo: newRegNo,
+      regNo: regNo,
       email,
       phoneNumber,
       courses,
@@ -111,7 +115,7 @@ export const addStudyCenter = async (req, res) => {
 
     const newUser = new User({
       name: centerHead,
-      email:authEmail,
+      email: authEmail,
       password: hashedPassword,
       role: "studycenter_user",
       phoneNumber,
@@ -135,6 +139,7 @@ export const addStudyCenter = async (req, res) => {
     });
   }
 };
+
 
 export const getVerifiedActiveStudyCenters = async (req, res) => {
   try {
@@ -163,7 +168,7 @@ export const getVerifiedActiveStudyCenters = async (req, res) => {
       isApproved: true,
       renewalDate: { $gt: currentDate },
       ...searchCondition,
-    };
+    }; 
 
     const studyCenters = await StudyCenter.find(queryCondition)
       .populate("courses")
@@ -316,7 +321,40 @@ export const getAllStudyCenterForExcel = async (req, res) => {
 };
 
 
+export const getCoursesWithBatchesOfAStudyCenter = async (req, res) => {
+  try {
+    const studycenterId = req.user.id;
 
+    // Get the studycenter with its courses
+    const studycenter = await StudyCenter.findById(studycenterId).populate(
+      "courses"
+    );
 
+    if (!studycenter) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Studycenter not found" });
+    }
+
+    const results = await Promise.all(
+      studycenter.courses.map(async (course) => {
+        const batches = await Batch.find({ courseId: course._id }).select(
+          "_id month"
+        ); // only fetch id and month
+
+        return {
+          courseId: course._id,
+          courseName: course.name,
+          batches,
+        };
+      })
+    );
+
+    res.json({ success: true, data: results });
+  } catch (error) {
+    console.error("Error fetching courses and batches:", error);
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
 
 

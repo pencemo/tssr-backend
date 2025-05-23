@@ -25,6 +25,9 @@ const batchSchema = new mongoose.Schema(
       ],
       required: true,
     },
+    admissionYear: {
+      type: Number,
+    },
     startDate: {
       type: Date,
       

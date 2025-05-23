@@ -1,8 +1,7 @@
 import mongoose from "mongoose";
 import Batch from "../models/batchSchema.js";
+import StudyCenter from "../models/studyCenterSchema.js";
 import { getDateOnlyFromDate } from "../utils/dateUtils.js";
-import { paginateArray } from "../utils/paginateArray.js";
-import batchSchema from "../models/batchSchema.js";
 export const createBatch = async (req, res) => {
   const { courseId } = req.query;
   const { month, isAdmissionStarted } = req.body;
@@ -74,7 +73,7 @@ export const createBatch = async (req, res) => {
 
 export const getBatchesOfCourse = async (req, res) => {
   const { courseId } = req.query;
-
+  console.log("Course ID:", courseId);
   const monthOrder = {
     january: 1,
     february: 2,
@@ -126,7 +125,7 @@ export const getBatchesOfCourse = async (req, res) => {
 
 export const editAdmissionStatus = async (req, res) => {
   const { batchId } = req.query;
-  const { date } = req.body;
+  const { date ,year } = req.body;
   try {
     // Validate date input
     if (!date || !date.from || !date.to) {
@@ -153,6 +152,7 @@ export const editAdmissionStatus = async (req, res) => {
     batch.isAdmissionStarted = true;
     batch.startDate = startDate;
     batch.endDate = endDate;
+    batch.admissionYear = year;
 
     await batch.save();
     console.log("Batch updated successfully:", batch);
@@ -174,7 +174,7 @@ export const editAdmissionStatus = async (req, res) => {
 //update batch date
 export const updateBatchDates = async (req, res) => {
   try {
-    const { month, date } = req.body;
+    const { month, date, year } = req.body;
 
     // Validate required fields
     if (!month || !date || !date.from || !date.to) {
@@ -199,6 +199,7 @@ export const updateBatchDates = async (req, res) => {
           startDate,
           endDate,
           isAdmissionStarted: true,
+          admissionYear: year,
         },
       }
     );
@@ -246,7 +247,7 @@ export const getOpenOrManuallyStartedBatches = async (req, res) => {
     }).sort({ startDate: 1 });
   
     const currentDate = getDateOnlyFromDate(new Date());
-    console.log("Current Date:", currentDate);
+    //console.log("Current Date:", currentDate);
 
     return res.status(200).json({
       success: true,
@@ -418,5 +419,152 @@ export const ToggleAdmissionStatusToClose = async (req, res) => {
     res.status(200).json({ message: "Batch updated successfully", batch ,success: true });
   } catch (error) {
     res.status(500).json({ error: "Server error" });
+  }
+};
+
+export const getAdmissionOpenedBatchesOfaCourse = async (req, res) => {
+  const courseId = req.query.courseId;
+  const currentDate = new Date();
+
+  if (!courseId) {
+    return res
+      .status(400)
+      .json({ message: "courseId query parameter is required" });
+  }
+
+  try {
+    const batches = await Batch.find({ courseId });
+
+    const filtered = batches.filter((batch) => {
+      return (
+        batch.isAdmissionStarted &&
+        batch.startDate &&
+        batch.endDate &&
+        currentDate >= batch.startDate &&
+        currentDate <= batch.endDate
+      );
+    });
+
+    res.json({ data: filtered });
+  } catch (err) {
+    res.status(500).json({ message: "Server Error", error: err.message });
+  }
+};
+
+
+// export const getAdmissionOpenBatchesByStudyCenter = async (req, res) => {
+//   const studyCenterId = req.user.id; // Authenticated user
+//   const currentDate = new Date();
+
+//   try {
+//     // Step 1: Fetch Study Center and its available courses
+//     const studyCenter = await StudyCenter.findById(studyCenterId)
+//       .populate("courses", "name category duration")
+//       .lean();
+
+//     if (!studyCenter) {
+//       return res.status(404).json({ message: "Study center not found." });
+//     }
+
+//     const availableCourses = studyCenter.courses;
+
+//     // Step 2: Fetch all batches for those courses
+//     const allBatches = await Batch.find({
+//       courseId: { $in: availableCourses.map((course) => course._id) },
+
+//     })
+//       .populate("courseId", "name category duration")
+//       .lean();
+
+//     // Step 3: Organize courses and filter their admission-open batches
+//     const result = availableCourses.map((course) => {
+//       const courseBatches = allBatches.filter((batch) => {
+//         return (
+//           batch.courseId &&
+//           batch.courseId._id.toString() === course._id.toString() &&
+//           batch.isAdmissionStarted === true &&
+//           batch.startDate <= currentDate &&
+//           batch.endDate >= currentDate
+//         );
+//       });
+
+//       return {
+//         courseId: course._id,
+//         name: course.name,
+//         category: course.category,
+//         duration: course.duration,
+//         admissionOpenBatches: courseBatches.sort((a, b) =>
+//           a.month.localeCompare(b.month)
+//         ),
+//       };
+//     });
+
+//     // Step 4: Filter out courses that have no open batches
+//     const filteredCourses = result.filter(
+//       (course) => course.admissionOpenBatches.length > 0
+//     );
+
+//     return res.status(200).json({
+//       success: true,
+//       studyCenter: {
+//         id: studyCenter._id,
+//         name: studyCenter.name,
+//       },
+//       courses: filteredCourses,
+//     });
+//   } catch (err) {
+//     console.error("Error fetching admission opened batches:", err);
+//     return res.status(500).json({
+//       success: false,
+//       message: "Server error",
+//       error: err.message,
+//     });
+//   }
+// };
+
+
+export const getAdmissionOpenBatchesByStudyCenter = async (req, res) => {
+  const studyCenterId = req.user.id; // Authenticated study center
+  const currentDate = new Date();
+
+  try {
+    // Step 1: Find the study center and its assigned courses
+    const studyCenter = await StudyCenter.findById(studyCenterId)
+      .populate("courses", "_id name category duration") // just the essential fields
+      .lean();
+
+    if (!studyCenter) {
+      return res.status(404).json({ message: "Study center not found." });
+    }
+
+    const courseIds = studyCenter.courses.map((course) => course._id);
+
+    // Step 2: Fetch only OPEN batches for those courses
+    const openBatches = await Batch.find({
+      courseId: { $in: courseIds },
+      isAdmissionStarted: true,
+      startDate: { $lte: currentDate },
+      endDate: { $gte: currentDate },
+    })
+      .populate("courseId", "name category duration")
+      .sort({ startDate: 1 }) // Optional: sort by soonest first
+      .lean();
+
+    return res.status(200).json({
+      success: true,
+      studyCenter: {
+        id: studyCenter._id,
+        name: studyCenter.name,
+      },
+      totalOpenBatches: openBatches.length,
+      batches: openBatches,
+    });
+  } catch (err) {
+    console.error("Error fetching open batches:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: err.message,
+    });
   }
 };
