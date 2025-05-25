@@ -7,8 +7,6 @@ import Enrollment from "../models/enrollmentSchema.js";
 export const getStudyCenterStudents = async (req, res) => {
   try {
     const studycenterId = req.user.id;
-    console.log("req.query", req.query);  
-
     const {
       batchId,
       courseId,
@@ -96,5 +94,72 @@ export const getStudyCenterStudents = async (req, res) => {
   }
 };
 
+export const getOneStudent = async (req, res) => {
+  try {
+    const { id } = req.query;
+    
+    const enrollment = await Enrollment.findById(id)
+      .populate({
+        path: "studentId",
+      })
+      .populate({ path: "batchId", select: "month" })
+      .populate({ path: "studycenterId", select: "name" })
+      .populate({ path: "courseId", select: "name" });
 
+    if (!enrollment) {
+      return res.status(404).json({ success: false, message: "Enrollment not found" });
+    }
+    const {studentId, batchId, courseId, studycenterId, ...rest}=enrollment._doc
+    return res.status(200).json({
+      success: true,
+      data : {
+        ...rest,
+        ...studentId._doc,
+        studycenter: studycenterId?.name || '',
+        batchMonth: batchId?.month || "",
+        ourseName: courseId?.name || "",
+      }
+      
+    })
+    
+    }catch (error) {
+    console.error("Failed to fetch enrolled students:", error);
+    return res.status(500).json({ success: false, message: "Server Error" });
+    }
+}
+
+export const getStudentsForDl = async (req, res) => {
+  try {
+    const studycenterId = req.user.id;
+    const {courseId, batchId, year, fields} = req.body;
+    const enrollments = await Enrollment.find({ studycenterId, courseId, batchId, year })
+      .populate({
+        path: "studentId",
+        select: fields ? fields.join(" ") : "",
+      })
+      .populate({ path: "batchId", select: "month" })
+      .populate({ path: "courseId", select: "name" });
+
+      return res.status(200).json({
+        success: true,
+        data: enrollments.map(en => {
+          const {studentId, batchId, courseId,year, enrolledDate,isPassed, isCompleted, ...rest} = en._doc;
+          const { _id, ...studentData } = studentId._doc;
+          return {
+            // ...rest,
+            ...studentData,
+            year, enrolledDate,
+            isCompleted : isCompleted ? "Completed" : "Not Completed",
+            isPassed : isPassed ? "Passed" : "Not Passed",
+            batchMonth: batchId?.month || "",
+            courseName: courseId?.name || "",
+          }
+        })
+
+      })
+
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
 

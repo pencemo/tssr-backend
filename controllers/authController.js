@@ -194,6 +194,7 @@ export const isOuth = async (req, res) => {
     return res.status(401).json({ success: false, message: "User not authenticated" });
   }
   try {
+    console.log(req.user);
     const user = await User.findById(req.user.id);
     if (!user) {
       return res.status(404).json({ success: false, message: "User not found" });
