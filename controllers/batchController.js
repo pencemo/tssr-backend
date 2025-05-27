@@ -171,7 +171,6 @@ export const editAdmissionStatus = async (req, res) => {
   }
 };
 
-//update batch date
 export const updateBatchDates = async (req, res) => {
   try {
     const { month, date, year } = req.body;
@@ -264,7 +263,6 @@ export const getOpenOrManuallyStartedBatches = async (req, res) => {
   }
 };
 
-// Admission Opened
 export const getAdmissionOpenedBatches = async (req, res) => {
   const page = parseInt(req.query.page) || 1;
   const search = req.query.search || "";
@@ -306,7 +304,6 @@ export const getAdmissionOpenedBatches = async (req, res) => {
   }
 };
 
-// Admission Scheduled
 export const getAdmissionScheduledBatches = async (req, res) => {
   const page = parseInt(req.query.page) || 1;
   const search = req.query.search || "";
@@ -346,7 +343,6 @@ export const getAdmissionScheduledBatches = async (req, res) => {
   }
 };
 
-// Admission Not Available
 export const getAdmissionNotAvailableBatches = async (req, res) => {
   const page = parseInt(req.query.page) || 1;
   const search = req.query.search || "";
@@ -524,7 +520,7 @@ export const getAdmissionOpenedBatchesOfaCourse = async (req, res) => {
 
 
 export const getAdmissionOpenBatchesByStudyCenter = async (req, res) => {
-  const studyCenterId = req.user.id; // Authenticated study center
+  const studyCenterId = req.user.studycenterId; // Authenticated study center
   const currentDate = new Date();
 
   try {
@@ -568,3 +564,4 @@ export const getAdmissionOpenBatchesByStudyCenter = async (req, res) => {
     });
   }
 };
+

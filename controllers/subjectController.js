@@ -1,6 +1,5 @@
 import Subject from "../models/subjectSchema.js";
 
-
 export const getAllSubjects = async (req, res) => {
   try {
     const subjects = await Subject.find({ isActive: true });
@@ -64,8 +63,6 @@ export const createSubject = async (req, res) => {
   }
 };
 
-
-
 export const updateSubject = async (req, res) => {
   const { id } = req.query;
 
@@ -99,8 +96,6 @@ export const updateSubject = async (req, res) => {
     });
   }
 };
-
-
 
 export const deleteSubject = async (req, res) => {
   try {

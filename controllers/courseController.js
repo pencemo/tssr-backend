@@ -1,6 +1,7 @@
 import Course from "../models/courseSchema.js";
 import Batch from "../models/batchSchema.js";
 import mongoose from "mongoose";
+import StudyCenter from "../models/studyCenterSchema.js";
 // Get all courses
 export const getAllCourses = async (req, res) => {
   try {
@@ -117,3 +118,78 @@ export const updateCourseById = async (req, res) => {
   }
 };
 
+export const getBatchesByStudyCenterOfAdmOpen = async (req, res) => {
+  const studyCenterId = req.user.studycenterId;
+  const currentDate = new Date();
+
+  try {
+    // Step 1: Fetch the study center and its courses
+    const studyCenter = await StudyCenter.findById(studyCenterId)
+      .populate("courses", "_id name category duration")
+      .lean();
+
+    if (!studyCenter) {
+      return res.status(404).json({ message: "Study center not found." });
+    }
+
+    const courseIds = studyCenter.courses.map((course) => course._id);
+
+    // Step 2: Fetch open batches
+    const openBatches = await Batch.find({
+      courseId: { $in: courseIds },
+      isAdmissionStarted: true,
+      startDate: { $lte: currentDate },
+      endDate: { $gte: currentDate },
+    })
+      .populate("courseId", "_id name category duration")
+      .lean();
+    
+    console.log("Open Batches:", openBatches);
+  
+    const courseBatchMap = {};
+
+    // Initialize each course with empty batches array
+    studyCenter.courses.forEach((course) => {
+      courseBatchMap[course._id.toString()] = {
+        courseId: course._id,
+        name: course.name,
+        category: course.category,
+        duration: course.duration,
+        batches: [],
+      };
+    });
+
+    // Assign batches with only id and month name
+    openBatches.forEach((batch) => {
+      const courseId = batch.courseId._id.toString();
+      if (courseBatchMap[courseId]) {
+        courseBatchMap[courseId].batches.push({
+          _id: batch._id,
+          month: batch.month,
+        });
+      }
+    });
+
+    // Convert map to array and filter only courses with open batches
+    const coursesWithBatches = Object.values(courseBatchMap).filter(
+      (entry) => entry.batches.length > 0
+    );
+
+    return res.status(200).json({
+      success: true,
+      studyCenter: {
+        id: studyCenter._id,
+        name: studyCenter.name,
+      },
+      totalCoursesWithOpenBatches: coursesWithBatches.length,
+      courses: coursesWithBatches,
+    });
+  } catch (err) {
+    console.error("Error fetching open batches:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: err.message,
+    });
+  }
+};

@@ -84,10 +84,8 @@ export const checkEnrollmentByAdhar = async (req, res) => {
 
 
 export const createStudent = async (req, res) => {
-  console.log("Received request to create student:", req.body);
-  //console.log("Received files:", req.files);
   try {
-    const studyCenterId = req.user.id; // From authentication middleware
+    const studyCenterId = req.user.studycenterId; // From authentication middleware
     const data = req.body;
     const {
       name,
@@ -156,11 +154,7 @@ export const createEnrollment = async (req, res) => {
   try {
     const {data} = req.body;
     const { studentId, courseId, batchId, year } = data;
-    console.log("studentId:", studentId);
-    console.log("courseId:", courseId);
-    console.log("batchId:", batchId);
-    console.log("year:", year);
-    const studycenterId = req.user.id;
+    const studycenterId = req.user.studycenterId;
 
     if (!studentId || !courseId || !batchId || !year) {
       return res
@@ -212,14 +206,10 @@ export const createEnrollment = async (req, res) => {
 
 export const createStudentWithEnrollment = async (req, res) => {
   try {
-    const studyCenterId = req.user.id; // From auth middleware
-
-    // ✅ Parse JSON strings from FormData
-    const studentData = req.body;
-    const enrollmentData = JSON.parse(req.body.enrollmentData);
-
-    console.log("Parsed student data:", studentData);
-    console.log("Parsed enrollment data:", enrollmentData);
+    const studyCenterId = req.user.studycenterId;
+    const studentData = req.body.student;
+    console.log("req.body:", req.body); 
+    const enrollmentData = req.body.enrollmentData;
 
     const {
       name,
@@ -236,30 +226,46 @@ export const createStudentWithEnrollment = async (req, res) => {
       dateOfAdmission,
       parentName,
       qualification,
+      sslc,
+      profileImage,
     } = studentData;
 
-    const { courseId, batchId, year } = enrollmentData;
+    const { courseId, batchId } = enrollmentData;
 
-    // Validate required fields
-    if (!adhaarNumber || !courseId || !batchId || !year) {
+    if (!adhaarNumber || !courseId || !batchId ) {
       return res.status(400).json({
         message: "Aadhaar number, courseId, batchId, and year are required.",
         success: false,
       });
     }
 
-    // Check if student exists by Aadhaar number
     let student = await Student.findOne({ adhaarNumber });
 
-    // If student doesn't exist, create a new one
     if (!student) {
-      const profileImageFile = req.files?.find(
-        (file) => file.fieldname === "profileImage"
-      );
-      const sslcFile = req.files?.find((file) => file.fieldname === "sslc");
+      const studyCenter = await StudyCenter.findOne({ _id: studyCenterId });
+      const atcId = studyCenter.atcId;
+      const lastFour = atcId.toString().slice(-4);
 
-      const profileImage = profileImageFile?.path || "";
-      const sslc = sslcFile?.path || "";
+      const lastStudent = await Student.findOne({ studyCenterId })
+        .sort({ createdAt: -1 })
+        .limit(1);
+
+      let lastRegNo;
+
+      if (!lastStudent) {
+        lastRegNo = 1000;
+      } else {
+        const regMatch = lastStudent.registrationNumber?.match(/\d{4}$/);
+        lastRegNo = regMatch ? parseInt(regMatch[0], 10) + 1 : 1001;
+      }
+
+      const paddedReg = String(lastRegNo).padStart(4, "0");
+      const registrationNumber = `${lastFour}${paddedReg}`;
+
+      const namePart = (name || "").substring(0, 3).toUpperCase();
+      const phonePart = phoneNumber?.toString().slice(-3) || "000";
+      const pinPart = pincode?.toString().slice(-3) || "000";
+      const customStudentId = `${namePart}/${phonePart}/${pinPart}`;
 
       const newStudent = new Student({
         name,
@@ -276,37 +282,22 @@ export const createStudentWithEnrollment = async (req, res) => {
         studyCenterId,
         dateOfAdmission,
         parentName,
-        registrationNumber: "123456", // TODO: Generate real registration number
         qualification,
-        sslc,
-        profileImage,
+        registrationNumber,
+        studentId: customStudentId,
+        sslc, // from URL
+        profileImage, // from URL
       });
 
       student = await newStudent.save();
     }
+    const batch = await Batch.findById(batchId);
 
-    // Check for duplicate enrollment
-    const existingEnrollment = await Enrollment.findOne({
-      studentId: student._id,
-      courseId,
-      batchId,
-      year,
-    });
-
-    if (existingEnrollment) {
-      return res.status(409).json({
-        message:
-          "Student is already enrolled in this course and batch for the given year.",
-        success: false,
-      });
-    }
-
-    // Create new enrollment
     const newEnrollment = new Enrollment({
       studentId: student._id,
       courseId,
       batchId,
-      year,
+      year:batch.admissionYear,
       studycenterId: studyCenterId,
       enrolledDate: new Date(),
       isCompleted: false,
@@ -317,9 +308,7 @@ export const createStudentWithEnrollment = async (req, res) => {
     await newEnrollment.save();
 
     return res.status(201).json({
-      message: student.wasNew
-        ? "Student and enrollment created."
-        : "Enrollment created for existing student.",
+      message: "Student and enrollment created successfully.",
       student,
       enrollment: newEnrollment,
       success: true,
@@ -333,12 +322,11 @@ export const createStudentWithEnrollment = async (req, res) => {
     });
   }
 };
+
 // excel Uploading for enrollment
 export const EnrollExcelStudents = async (req, res) => {
   try {
     const data = req.body;
-    console.log("Received data for enrollment:", data);
-
     const REQUIRED_FIELDS = [
       "name",   
       "age",
@@ -426,22 +414,21 @@ export const EnrollExcelStudents = async (req, res) => {
 export const bulkEnrollStudents = async (req, res) => {
   const date = new Date();
   const today = getDateOnlyFromDate(date);
-  
+
   try {
     const { newStudents, pendingEnrollmentStudents, course } = req.body;
-    const studyCenterId = req.user.id;
+    const studyCenterId = req.user.studycenterId;
     const enrollments = [];
-    console.log("COurse data:", course.batchId)
+
     const batch = await Batch.findOne({ _id: course.batchId });
     if (!batch) {
-      console.log("Batch not found");
       return res.status(404).json({
         success: false,
         message: "Batch not found",
       });
     }
 
-    // 1. Enroll pending students
+    // Enroll pending students
     for (const student of pendingEnrollmentStudents) {
       enrollments.push({
         studentId: student._id,
@@ -455,39 +442,36 @@ export const bulkEnrollStudents = async (req, res) => {
         enrolledDate: today,
       });
     }
-    const studyCenter = await StudyCenter.findOne({ _id: studyCenterId });
-    console.log("Study Center:", studyCenter);  
-    const atcId = studyCenter.atcId;
-    console.log("ATC ID:", atcId);
-    const lastFour = getLast4Digits(atcId);
-    //console.log(lastFour);
 
-    // 2. Get the latest registration number from the last student at the center
+    const studyCenter = await StudyCenter.findOne({ _id: studyCenterId });
+    const atcId = studyCenter.atcId;
+    const lastFour = atcId.toString().slice(-4); // Ensure last 4 digits
+
+    // Get the last registered student for that study center
     const lastStudent = await Student.findOne({ studyCenterId })
-      .sort({ createdAt: -1 }) // Or use `_id: -1` if no timestamps
+      .sort({ createdAt: -1 }) // or _id: -1
       .limit(1);
 
-    // Safely extract the numeric part from registration number
-    let lastRegNo = 1000;
-    if (lastStudent && lastStudent.registrationNumber) {
-      const match = lastStudent.registrationNumber.match(/\d+$/); // Get trailing number
-      if (match) {
-        lastRegNo = parseInt(match[0]); // Convert to number
-      }
+    let lastRegNo;
+
+    if (!lastStudent) {
+      // No students yet, start from 1000
+      lastRegNo = 1000;
+    } else {
+      const regMatch = lastStudent.registrationNumber?.match(/\d{4}$/); // Get last 4 digits
+      lastRegNo = regMatch ? parseInt(regMatch[0], 10) + 1 : 1001;
     }
 
-    // 3. Create new students and enroll them
     for (const student of newStudents) {
-      lastRegNo += 1;
-      const registrationNumber = lastFour + String(lastRegNo);
+      const paddedReg = String(lastRegNo).padStart(4, "0");
+      const registrationNumber = `${lastFour}${paddedReg}`;
 
-      // Generate custom studentId
+      // Generate custom student ID
       const namePart = (student.name || "").substring(0, 3).toUpperCase();
       const phonePart = student.phoneNumber?.toString().slice(-3) || "000";
       const pinPart = student.pincode?.toString().slice(-3) || "000";
       const customStudentId = `${namePart}/${phonePart}/${pinPart}`;
 
-      // Create new student
       const newStudent = await Student.create({
         name: student.name,
         age: student.age,
@@ -501,7 +485,7 @@ export const bulkEnrollStudents = async (req, res) => {
         email: student.email,
         adhaarNumber: student.adhaarNumber,
         studyCenterId: studyCenterId,
-        registrationNumber: registrationNumber,
+        registrationNumber,
         studentId: customStudentId,
         dateOfAdmission: today,
         parentName: student.parentName,
@@ -510,7 +494,6 @@ export const bulkEnrollStudents = async (req, res) => {
         profileImage: student.profileImage || "",
       });
 
-      // Add enrollment
       enrollments.push({
         studentId: newStudent._id,
         courseId: course.courseId,
@@ -522,9 +505,10 @@ export const bulkEnrollStudents = async (req, res) => {
         isCertificateIssued: false,
         enrolledDate: today,
       });
+
+      lastRegNo += 1;
     }
 
-    // 4. Bulk insert enrollments
     await Enrollment.insertMany(enrollments);
 
     return res.status(200).json({
@@ -534,11 +518,13 @@ export const bulkEnrollStudents = async (req, res) => {
     });
   } catch (error) {
     console.error("Bulk Enrollment Error:", error);
-    return res
-      .status(500)
-      .json({ success: false, error: "Internal server error" });
+    return res.status(500).json({
+      success: false,
+      error: "Internal server error",
+    });
   }
 };
+
 
 
 

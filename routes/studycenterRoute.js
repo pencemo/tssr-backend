@@ -14,7 +14,6 @@ const router = express.Router();
 router.post("/addStudyCenter", addStudyCenter);
 router.get(
   "/getVerifiedStudyCenters",
-   
   getVerifiedActiveStudyCenters
 );
 

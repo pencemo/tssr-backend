@@ -120,7 +120,8 @@ export const login = async (req, res) => {
         });
       }
     }
-
+    console.log("password", password)
+    console.log("user password", user.password);
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(401).json({
@@ -131,17 +132,16 @@ export const login = async (req, res) => {
     var token = true;
     if (user.role === "admin") {
        token = jwt.sign(
-        { id: user._id, isAdmin: user.isAdmin },
+        { id: user._id, isAdmin: user.isAdmin, studycenterId: null },
         process.env.JWT_SECRET,
         { expiresIn: "7d" }
       );
-    } else {
-      
+    } else { 
        token = jwt.sign(
-        { id: studyCenter._id, isAdmin: user.isAdmin },
-        process.env.JWT_SECRET,
-        { expiresIn: "7d" }
-      );
+         { id: user._id, isAdmin: user.isAdmin, studycenterId: studyCenter._id },
+         process.env.JWT_SECRET,
+         { expiresIn: "7d" }
+       );
     }
     res.cookie("token", token, {
       httpOnly: true,
@@ -151,17 +151,14 @@ export const login = async (req, res) => {
     });
     
 
-
+    
     res.status(200).json({
       success: true,
       message: "Login successful",
       data: {
         user: {
-          name: user.name,
-          email: user.email,
-          role: user.role,
-          profileImg: user.profileImg,
-          isAdmin: user.isAdmin,
+          ...user._doc,
+          password: null, // Exclude password from response
           ...(user.role === "studycenter_user" && {
             studyCenter: {
               id: studyCenter._id,
@@ -172,7 +169,7 @@ export const login = async (req, res) => {
               isActive: studyCenter.isActive,
               place: studyCenter.place,
               district: studyCenter.district,
-              pincode:studyCenter.pincode,
+              pincode: studyCenter.pincode,
               state: studyCenter.state,
               centerHead: studyCenter.centerHead,
               atcId: studyCenter.atcId,
@@ -182,6 +179,7 @@ export const login = async (req, res) => {
       },
     });
   } catch (err) {
+    console.error("Login error:", err);
     res.status(500).json({
       success: false,
       message: "Internal server error: " + err.message,
@@ -195,7 +193,14 @@ export const isOuth = async (req, res) => {
   }
   try {
     console.log(req.user);
-    const user = await User.findById(req.user.id);
+    let user = null;
+    if (req.user.role == "admin") {
+      user = await User.findById(req.user.id);
+    } else {
+      user = await User.findById(req.user.id).populate("studycenterId", "name regNo renewalDate isVerified isActive place district pincode state centerHead atcId");
+      console.log(user);
+    }
+
     if (!user) {
       return res.status(404).json({ success: false, message: "User not found" });
     }

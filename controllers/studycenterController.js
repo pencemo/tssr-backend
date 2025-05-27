@@ -231,8 +231,6 @@ export const getStudyCenterById = async (req, res) => {
 export const updateStudyCenter = async (req, res) => {
   try {
     const { id } = req.query;
-    console.log(id);
-    console.log(req.body);
     // Extract only allowed fields from the request body
     const {
       name,
@@ -323,7 +321,7 @@ export const getAllStudyCenterForExcel = async (req, res) => {
 
 export const getCoursesWithBatchesOfAStudyCenter = async (req, res) => {
   try {
-    const studycenterId = req.user.id;
+    const studycenterId = req.user.studycenterId;
 
     // Get the studycenter with its courses
     const studycenter = await StudyCenter.findById(studycenterId).populate(

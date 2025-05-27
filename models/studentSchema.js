@@ -27,22 +27,22 @@ const studentSchema = new Schema(
       type: String,
       required: true,
     },
-      place: {
-        type: String,
-        required: true,
-      },
-      district: {
-        type: String,
-        required: true,
-      },
-      state: {
-        type: String,
-        required: true,
-      },
-      pincode: {
-        type: String,
-        required: true,
-      },
+    place: {
+      type: String,
+      required: true,
+    },
+    district: {
+      type: String,
+      required: true,
+    },
+    state: {
+      type: String,
+      required: true,
+    },
+    pincode: {
+      type: String,
+      required: true,
+    },
     email: {
       type: String,
       required: true,
@@ -82,6 +82,9 @@ const studentSchema = new Schema(
       type: String,
       default: "",
     },
+    studentId: {
+      type: String,
+    }
   },
   {
     timestamps: true,

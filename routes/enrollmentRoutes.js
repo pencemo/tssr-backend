@@ -10,7 +10,7 @@ import { isAuthenticated } from "../middlewares/authMiddleware.js";
 router.post("/checkEnrolledOrNot", checkEnrollmentByAdhar);
 router.post("/createStudent", isAuthenticated, upload.any(), createStudent);
 router.post("/createEnrollment",isAuthenticated,createEnrollment);
-router.post("/createStudentWithEnrollment",isAuthenticated,upload.any(),createStudentWithEnrollment);
+router.post("/createStudentWithEnrollment",isAuthenticated,createStudentWithEnrollment);
 router.post("/EnrollmentUsingExcel", isAuthenticated, EnrollExcelStudents);
 router.post("/bulkEnrollStudents", isAuthenticated, bulkEnrollStudents);
 export default router;

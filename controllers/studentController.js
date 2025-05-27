@@ -1,12 +1,8 @@
-
 import Enrollment from "../models/enrollmentSchema.js";
-
-
-
 
 export const getStudyCenterStudents = async (req, res) => {
   try {
-    const studycenterId = req.user.id;
+    const studycenterId = req.user.studycenterId;
     const {
       batchId,
       courseId,
@@ -130,7 +126,7 @@ export const getOneStudent = async (req, res) => {
 
 export const getStudentsForDl = async (req, res) => {
   try {
-    const studycenterId = req.user.id;
+    const studycenterId = req.user.studycenterId;
     const {courseId, batchId, year, fields} = req.body;
     const enrollments = await Enrollment.find({ studycenterId, courseId, batchId, year })
       .populate({
