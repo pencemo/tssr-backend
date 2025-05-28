@@ -364,12 +364,14 @@ export const getAdmissionNotAvailableBatches = async (req, res) => {
         batchMonth.includes(search.toLowerCase()) ||
         category.includes(search.toLowerCase());
 
-      const isExpired = batch.endDate && currentDate > batch.endDate;
-
+        const isExpired = batch.endDate
+          ? currentDate > new Date(batch.endDate)
+          : false;
+      console.log("Batch End Date:", batch.endDate, "Is Expired:", isExpired);
       return (
         searchMatch &&
-        !batch.isAdmissionStarted ||
-        isExpired
+        (!batch.isAdmissionStarted ||
+        isExpired)
       );
     });
 
