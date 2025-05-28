@@ -173,7 +173,7 @@ export const getStudentsForDl = async (req, res) => {
         });
       }
     }
-    const { courseId, batchId, year, fields } = req.body;
+    const { courseId, batchId, year, fields } = req.body || {}; ;
 
     const query = {};
     if (studycenterId) query.studycenterId = studycenterId;
@@ -181,7 +181,7 @@ export const getStudentsForDl = async (req, res) => {
     if (batchId) query.batchId = batchId;
     if (year) query.year = year;
 
-    const enrollments = await Enrollment.find({ query })
+    const enrollments = await Enrollment.find(query)
       .populate({
         path: "studentId",
         select: fields ? fields.join(" ") : "",
@@ -191,6 +191,9 @@ export const getStudentsForDl = async (req, res) => {
       .populate({ path: "studycenterId", select: "name" });
 
     console.log("Enrollments for download:", enrollments);
+    if(enrollments.length === 0) {
+      return res.status(404).json({ success: false, message: "No enrollments found for the given criteria." });
+    }
 
     const formattedData = enrollments
       .map((en) => {
@@ -226,7 +229,9 @@ export const getStudentsForDl = async (req, res) => {
     return res.status(200).json({
       success: true,
       data: formattedData,
-      studycenterName: req.user,
+      studycenterName:
+        studycenterId ? enrollments[0]?.studycenterId?.name : "All Study Centers",
+
       courseName: courseId ? enrollments[0].courseId.name : "All Courses",
       batchMonth: batchId ? enrollments[0].batchId.name : "All Batches",
       year: year || "All Years",
