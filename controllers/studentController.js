@@ -1,8 +1,16 @@
 import Enrollment from "../models/enrollmentSchema.js";
 
 export const getStudyCenterStudents = async (req, res) => {
+  const user = req.user;
+  let studycenterId;
+
   try {
-    const studycenterId = req.user.studycenterId;
+    if (user.isAdmin) {
+      studycenterId = req.query.studycentre;
+    } else {
+      studycenterId = req.user.studycenterId;
+    }
+
     const {
       batchId,
       courseId,
@@ -14,8 +22,9 @@ export const getStudyCenterStudents = async (req, res) => {
       limit = 10,
     } = req.query;
 
-    const filter = { studycenterId };
-    if (batchId) filter.batchId = batchId;
+    const filter = {  };
+    if (studycenterId) filter.studycenterId = studycenterId;
+      if (batchId) filter.batchId = batchId;
     if (courseId) filter.courseId = courseId;
     if (year) filter.year = parseInt(year);
 
@@ -34,7 +43,11 @@ export const getStudyCenterStudents = async (req, res) => {
         },
       })
       .populate({ path: "batchId", select: "month" })
-      .populate({ path: "courseId", select: "name" });
+      .populate({ path: "courseId", select: "name" })
+      .populate({
+        path: "studycenterId",
+        select: "name"
+      });
 
     // Filter out students not matched
     enrollments = enrollments.filter((en) => en.studentId);
@@ -73,6 +86,7 @@ export const getStudyCenterStudents = async (req, res) => {
       profileImage: en.studentId.profileImage,
       batchMonth: en.batchId?.month || "",
       courseName: en.courseId?.name || "",
+      studycenterName: en.studycenterId?.name || "",
       enrollmentId: en._id,
       year:en.year
     }));
@@ -241,4 +255,71 @@ export const getStudentsForDl = async (req, res) => {
     return res.status(500).json({ success: false, message: "Server Error" });
   }
 };
+export const getAllStudentsDownloadForAdmin = async (req, res) => {
+  try {
+    const { courseId, batchId, year, fields } = req.body || {};
 
+    const query = {};
+    if (courseId) query.courseId = courseId;
+    if (batchId) query.batchId = batchId;
+    if (year) query.year = year;
+
+    const enrollments = await Enrollment.find(query)
+      .populate({
+        path: "studentId",
+        select: fields ? fields.join(" ") : "",
+      })
+      .populate({ path: "batchId", select: "month admissionYear" })
+      .populate({ path: "courseId", select: "name" })
+      .populate({ path: "studycenterId", select: "name" });
+
+    if (!enrollments.length) {
+      return res
+        .status(404)
+        .json({ success: false, message: "No enrollments found." });
+    }
+
+    // Group by studycenterId
+    const groupedByCenter = {};
+
+    for (const en of enrollments) {
+      const centerId = en.studycenterId?._id?.toString() || "unknown";
+      const centerName = en.studycenterId?.name || "Unknown Study Center";
+
+      if (!en.studentId || !en.studentId._doc) continue;
+
+      const { _id, ...studentData } = en.studentId._doc;
+
+      const formatted = {
+        ...studentData,
+        year: en.year,
+        enrolledDate: en.enrolledDate,
+        isCompleted: en.isCompleted ? "Completed" : "Not Completed",
+        isPassed: en.isPassed ? "Passed" : "Not Passed",
+        batchMonth: en.batchId?.month || "",
+        courseName: en.courseId?.name || "",
+      };
+
+      if (!groupedByCenter[centerId]) {
+        groupedByCenter[centerId] = {
+          studycenterId: centerId,
+          studycenterName: centerName,
+          students: [],
+        };
+      }
+
+      groupedByCenter[centerId].students.push(formatted);
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: Object.values(groupedByCenter),
+      courseName: courseId ? enrollments[0].courseId.name : "All Courses",
+      batchMonth: batchId ? enrollments[0].batchId.month : "All Batches",
+      year: year || "All Years",
+    });
+  } catch (error) {
+    console.error("Error in getAllEnrollmentsGroupedByStudyCenter:", error);
+    return res.status(500).json({ success: false, message: "Server Error" });
+  }
+};

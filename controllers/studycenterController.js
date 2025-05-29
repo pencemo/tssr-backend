@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import moment from "moment";
 import User from "../models/userSchema.js";
 import Batch from "../models/batchSchema.js";
+import Course from "../models/courseSchema.js";
 
 export const addStudyCenter = async (req, res) => {
   console.log(req.body);
@@ -139,7 +140,6 @@ export const addStudyCenter = async (req, res) => {
     });
   }
 };
-
 
 export const getVerifiedActiveStudyCenters = async (req, res) => {
   try {
@@ -318,35 +318,56 @@ export const getAllStudyCenterForExcel = async (req, res) => {
   }
 };
 
-
 export const getCoursesWithBatchesOfAStudyCenter = async (req, res) => {
+  const user = req.user;
+  const studycenterId = user.studycenterId;
+  let results = [];
   try {
-    const studycenterId = req.user.studycenterId;
+    if (user.isAdmin) {
+      const courses =await Course.find();
+      results = await Promise.all(
+        courses.map(async (course) => {
+          const batches = await Batch.find({ courseId: course._id }).select(
+            "_id month"
+          ); // only fetch id and month
 
-    // Get the studycenter with its courses
-    const studycenter = await StudyCenter.findById(studycenterId).populate(
-      "courses"
-    );
+          return {
+            courseId: course._id,
+            courseName: course.name,
+            batches,
+          };
+        })
+      );
 
-    if (!studycenter) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Studycenter not found" });
+    } else {
+      const { id } = req.query
+
+
+      // Get the studycenter with its courses
+      const studycenter = await StudyCenter.findById(studycenterId).populate(
+        "courses"
+      );
+
+      if (!studycenter) {
+        return res
+          .status(404)
+          .json({ success: false, message: "Studycenter not found" });
+      }
+
+       results = await Promise.all(
+        studycenter.courses.map(async (course) => {
+          const batches = await Batch.find({ courseId: course._id }).select(
+            "_id month"
+          ); // only fetch id and month
+
+          return {
+            courseId: course._id,
+            courseName: course.name,
+            batches,
+          };
+        })
+      );
     }
-
-    const results = await Promise.all(
-      studycenter.courses.map(async (course) => {
-        const batches = await Batch.find({ courseId: course._id }).select(
-          "_id month"
-        ); // only fetch id and month
-
-        return {
-          courseId: course._id,
-          courseName: course.name,
-          batches,
-        };
-      })
-    );
 
     res.json({ success: true, data: results });
   } catch (error) {
@@ -356,7 +377,6 @@ export const getCoursesWithBatchesOfAStudyCenter = async (req, res) => {
 };
 
 //edit studycenter fields
-// Arrow function to update a study center
 export const editStudycenterFieldsByStudycenter = async (req, res) => {
   try {
     const id  = req.user.studycenterId;
