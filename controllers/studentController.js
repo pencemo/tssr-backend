@@ -233,7 +233,7 @@ export const getStudentsForDl = async (req, res) => {
         studycenterId ? enrollments[0]?.studycenterId?.name : "All Study Centers",
 
       courseName: courseId ? enrollments[0].courseId.name : "All Courses",
-      batchMonth: batchId ? enrollments[0].batchId.name : "All Batches",
+      batchMonth: batchId ? enrollments[0].batchId.month : "All Batches",
       year: year || "All Years",
     });
   } catch (error) {

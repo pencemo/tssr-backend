@@ -12,6 +12,8 @@ import cookieParser from "cookie-parser";
 import  studycenterRoute  from "./routes/studycenterRoute.js";
 import batchRoutes from "./routes/batchRoutes.js";
 import enrollmentRoutes from "./routes/enrollmentRoutes.js";
+import settingsRoutes from './routes/settingsRoutes.js'
+
 dotenv.config();
 const app = express();
 app.use(cookieParser());
@@ -57,6 +59,7 @@ app.use("/api/result", resultRoutes);
 app.use("/api/studycenter", studycenterRoute);
 app.use("/api/batch", batchRoutes);
 app.use("/api/enrollment", enrollmentRoutes);
+app.use("/api/settings", settingsRoutes);
 app.use('/', (req,res) => {
   res.send("This api not listed");
 })

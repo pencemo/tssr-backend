@@ -120,8 +120,7 @@ export const login = async (req, res) => {
         });
       }
     }
-    console.log("password", password)
-    console.log("user password", user.password);
+    
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(401).json({
@@ -158,7 +157,9 @@ export const login = async (req, res) => {
       data: {
         user: {
           ...user._doc,
-          password: null, // Exclude password from response
+          password: null,
+          verificationCode: null,
+          // Exclude password from response
           ...(user.role === "studycenter_user" && {
             studyCenter: {
               id: studyCenter._id,
@@ -195,9 +196,16 @@ export const isOuth = async (req, res) => {
     console.log(req.user);
     let user = null;
     if (req.user.role == "admin") {
-      user = await User.findById(req.user.id);
+      user = await User.findById(req.user.id).select(
+        "-password -__v -verificationCode"
+      );
     } else {
-      user = await User.findById(req.user.id).populate("studycenterId", "name regNo renewalDate isVerified isActive place district pincode state centerHead atcId");
+      user = await User.findById(req.user.id)
+        .select("-password -__v -verificationCode")
+        .populate(
+          "studycenterId",
+          "name regNo renewalDate isVerified isActive place district pincode state centerHead atcId"
+        );
       console.log(user);
     }
 
