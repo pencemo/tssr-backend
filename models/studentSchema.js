@@ -47,6 +47,7 @@ const studentSchema = new Schema(
       type: String,
       required: true,
       match: [/.+\@.+\..+/, "Please provide a valid email address"],
+      //unique: true,
     },
     adhaarNumber: {
       type: String,
@@ -61,6 +62,7 @@ const studentSchema = new Schema(
     registrationNumber: {
       type: String,
       required: true,
+      unique: true,
     },
     dateOfAdmission: {
       type: Date,

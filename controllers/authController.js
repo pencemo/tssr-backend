@@ -193,7 +193,6 @@ export const isOuth = async (req, res) => {
     return res.status(401).json({ success: false, message: "User not authenticated" });
   }
   try {
-    console.log(req.user);
     let user = null;
     if (req.user.role == "admin") {
       user = await User.findById(req.user.id).select(
@@ -206,7 +205,7 @@ export const isOuth = async (req, res) => {
           "studycenterId",
           "name regNo renewalDate isVerified isActive place district pincode state centerHead atcId"
         );
-      console.log(user);
+      
     }
 
     if (!user) {

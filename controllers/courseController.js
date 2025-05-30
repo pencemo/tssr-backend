@@ -144,7 +144,6 @@ export const getBatchesByStudyCenterOfAdmOpen = async (req, res) => {
       .populate("courseId", "_id name category duration")
       .lean();
     
-    console.log("Open Batches:", openBatches);
   
     const courseBatchMap = {};
 

@@ -35,9 +35,8 @@ export const addStudyCenter = async (req, res) => {
 
     // === Check if email already exists ===
     const emailExistsInUser = await User.findOne({ authEmail });
-    const emailExistsInCenter = await StudyCenter.findOne({ email });
 
-    if (emailExistsInUser || emailExistsInCenter) {
+    if (emailExistsInUser) {
       return res.status(400).json({
         success: false,
         message: "Email already exists in the system",
@@ -415,60 +414,5 @@ export const editStudycenterFieldsByStudycenter = async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });
-  }
-};
-
-export const editUserFields = async (req, res) => {
-  try {
-    const userId = req.user.id;
-
-    const { name, password, newPassword, phoneNumber } = req.body;
-
-    const user = await User.findById(userId); // ✅ Fix: use userId directly, not { userId }
-
-    if (!user) {
-      return res.status(400).json({
-        success: false,
-        message: "User not found",
-      });
-    }
-
-    
-    if (password && newPassword) {
-      const isMatch = await bcrypt.compare(password, user.password); // ✅ Fix: await was missing
-
-      if (!isMatch) {
-        return res.status(401).json({
-          message: "Your current password is incorrect.",
-          success: false,
-        });
-      }
-
-      const hashedPassword = await bcrypt.hash(newPassword, 10);
-
-      user.password = hashedPassword;
-    }
-
-    
-    if (name) user.name = name;
-    if (phoneNumber) user.phoneNumber = phoneNumber;
-
-    await user.save();
-    return res.json({
-      message: "User profile updated.",
-      success: true,
-      data: {
-        id: user._id,
-        name: user.name,
-        phoneNumber: user.phoneNumber,
-        email: user.email, // include other fields as needed
-      },
-    });
-  } catch (error) {
-    console.error("Error editing user fields:", error); // ✅ Fix: incorrect reference `fields`
-    res.status(500).json({
-      success: false,
-      message: "Server error while editing user details",
-    });
   }
 };

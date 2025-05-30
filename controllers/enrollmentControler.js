@@ -9,7 +9,7 @@ export const checkEnrollmentByAdhar = async (req, res) => {
     const { adhaarNumber } = req.body;
 
     const adharNumber = adhaarNumber?.adhaarNumber || adhaarNumber; // handle if directly passed
-    console.log("Received Aadhaar number:", adharNumber);
+   // console.log("Received Aadhaar number:", adharNumber);
 
     if (!adharNumber) {
       return res.status(400).json({
@@ -25,7 +25,7 @@ export const checkEnrollmentByAdhar = async (req, res) => {
 
     // 1. Find the student by Aadhaar number
     const student = await Student.findOne({ adhaarNumber: adharNumber });
-    console.log("Found student:", student);
+    //console.log("Found student:", student);
 
     if (!student) {
       // Phase 1: Student not found
@@ -45,8 +45,8 @@ export const checkEnrollmentByAdhar = async (req, res) => {
       studentId: student._id,
       isComplete: false,
     });
-
-    if (enrollments) {
+    console.log("enrollment :",enrollments);
+    if (enrollments.length > 0) {
       return res.status(200).json({
         data: {
           studentExists: true,
@@ -62,7 +62,7 @@ export const checkEnrollmentByAdhar = async (req, res) => {
           studentExists: true,
           enrolled: false,
           student,
-          message: "Student found and not enrolled in any active course.",
+          message: "Proceed with new Enrollment .",
         },
         success:true
       });
@@ -291,13 +291,13 @@ export const createStudentWithEnrollment = async (req, res) => {
 
       student = await newStudent.save();
     }
-    const batch = await Batch.findById(batchId);
-
+    const batch = await Batch.findOne({_id: batchId});
+    console.log("batch:", batch);
     const newEnrollment = new Enrollment({
       studentId: student._id,
       courseId,
       batchId,
-      year:batch.admissionYear,
+      year:batch?.admissionYear,
       studycenterId: studyCenterId,
       enrolledDate: new Date(),
       isCompleted: false,

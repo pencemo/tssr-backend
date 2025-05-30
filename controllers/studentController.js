@@ -1,12 +1,116 @@
 import Enrollment from "../models/enrollmentSchema.js";
 
+// export const getStudyCenterStudents = async (req, res) => {
+//   const user = req.user;
+//   let studycenterId;
+
+//   try {
+//     if (user.isAdmin) {
+//       studycenterId = req.query.studyCentre;
+//     } else {
+//       studycenterId = req.user.studycenterId;
+//     }
+
+//     const {
+//       batchId,
+//       courseId,
+//       year,
+//       search = "",
+//       sortBy = "createdAt",
+//       order = "asc",
+//       page = 1,
+//       limit = 10,
+//     } = req.query;
+
+//     const filter = {  };
+//     if (studycenterId) filter.studycenterId = studycenterId;
+//       if (batchId) filter.batchId = batchId;
+//     if (courseId) filter.courseId = courseId;
+//     if (year) filter.year = parseInt(year);
+
+//     // Get all enrollments (no skip/limit yet)
+//     let enrollments = await Enrollment.find(filter)
+//       .populate({
+//         path: "studentId",
+//         select:
+//           "name email phoneNumber registrationNumber profileImage createdAt",
+//         match: {
+//           $or: [
+//             { name: new RegExp(search, "i") },
+//             { phoneNumber: new RegExp(search, "i") },
+//             { registrationNumber: new RegExp(search, "i") },
+//           ],
+//         },
+//       })
+//       .populate({ path: "batchId", select: "month" })
+//       .populate({ path: "courseId", select: "name" })
+//       .populate({
+//         path: "studycenterId",
+//         select: "name"
+//       });
+
+//     // Filter out students not matched
+//     enrollments = enrollments.filter((en) => en.studentId);
+
+//     // Sort
+//     enrollments = enrollments.sort((a, b) => {
+//       let valA, valB;
+//       if (sortBy === "student.name") {
+//         valA = a.studentId.name?.toLowerCase() || "";
+//         valB = b.studentId.name?.toLowerCase() || "";
+//       } else if (sortBy === "student.phoneNumber") {
+//         valA = a.studentId.phoneNumber || "";
+//         valB = b.studentId.phoneNumber || "";
+//       } else {
+//         valA = new Date(a.studentId.createdAt);
+//         valB = new Date(b.studentId.createdAt);
+//       }
+//       return order === "desc" ? (valB > valA ? 1 : -1) : valA > valB ? 1 : -1;
+//     });
+
+//     const total = enrollments.length;
+//     const totalPages = Math.ceil(total / limit);
+//     const currentPage = parseInt(page);
+
+//     // Apply pagination *after* filtering + sorting
+//     const paginated = enrollments.slice(
+//       (currentPage - 1) * limit,
+//       currentPage * limit
+//     );
+
+//     const formatted = paginated.map((en) => ({
+//       studentName: en.studentId.name,
+//       email: en.studentId.email,
+//       phoneNumber: en.studentId.phoneNumber,
+//       registrationNumber: en.studentId.registrationNumber,
+//       profileImage: en.studentId.profileImage,
+//       batchMonth: en.batchId?.month || "",
+//       courseName: en.courseId?.name || "",
+//       studycenterName: en.studycenterId?.name || "",
+//       enrollmentId: en._id,
+//       year:en.year
+//     }));
+
+//     res.json({
+//       success: true,
+//       data: formatted,
+//         totalData: total,
+//         currentPage,
+//         totalPages,
+//     });
+//   } catch (error) {
+//     console.error("Failed to fetch enrolled students:", error);
+//     res.status(500).json({ success: false, message: "Server Error" });
+//   }
+// };
+
 export const getStudyCenterStudents = async (req, res) => {
   const user = req.user;
   let studycenterId;
 
   try {
     if (user.isAdmin) {
-      studycenterId = req.query.studycentre;
+      studycenterId = req.query.studyCentre;
     } else {
       studycenterId = req.user.studycenterId;
     }
@@ -16,15 +120,15 @@ export const getStudyCenterStudents = async (req, res) => {
       courseId,
       year,
       search = "",
-      sortBy = "createdAt",
-      order = "asc",
+      sortBy = "Name",
+      order = "desc",
       page = 1,
       limit = 10,
     } = req.query;
 
-    const filter = {  };
+    const filter = {};
     if (studycenterId) filter.studycenterId = studycenterId;
-      if (batchId) filter.batchId = batchId;
+    if (batchId) filter.batchId = batchId;
     if (courseId) filter.courseId = courseId;
     if (year) filter.year = parseInt(year);
 
@@ -46,16 +150,40 @@ export const getStudyCenterStudents = async (req, res) => {
       .populate({ path: "courseId", select: "name" })
       .populate({
         path: "studycenterId",
-        select: "name"
+        select: "name",
       });
 
-    // Filter out students not matched
+    // Filter out enrollments where studentId is null (no match on search)
     enrollments = enrollments.filter((en) => en.studentId);
 
-    // Sort
+    // Group by studentId but keep enrollments if they match search, show only one per student
+    const seenStudentIds = new Set();
+    const uniqueOrMatchedEnrollments = [];
+
+    enrollments.forEach((en) => {
+      const studentId = en.studentId._id.toString();
+
+      // Check if search matched this enrollment's student fields
+      const matched =
+        search &&
+        (en.studentId.name?.toLowerCase().includes(search.toLowerCase()) ||
+          en.studentId.phoneNumber?.includes(search) ||
+          en.studentId.registrationNumber
+            ?.toLowerCase()
+            .includes(search.toLowerCase()));
+
+      if (!seenStudentIds.has(studentId) || matched) {
+        seenStudentIds.add(studentId);
+        uniqueOrMatchedEnrollments.push(en);
+      }
+    });
+
+    enrollments = uniqueOrMatchedEnrollments;
+
+    // Sort enrollments
     enrollments = enrollments.sort((a, b) => {
       let valA, valB;
-      if (sortBy === "student.name") {
+      if (sortBy === "byName") {
         valA = a.studentId.name?.toLowerCase() || "";
         valB = b.studentId.name?.toLowerCase() || "";
       } else if (sortBy === "student.phoneNumber") {
@@ -78,6 +206,7 @@ export const getStudyCenterStudents = async (req, res) => {
       currentPage * limit
     );
 
+    // Format response as before
     const formatted = paginated.map((en) => ({
       studentName: en.studentId.name,
       email: en.studentId.email,
@@ -88,15 +217,15 @@ export const getStudyCenterStudents = async (req, res) => {
       courseName: en.courseId?.name || "",
       studycenterName: en.studycenterId?.name || "",
       enrollmentId: en._id,
-      year:en.year
+      year: en.year,
     }));
 
     res.json({
       success: true,
       data: formatted,
-        totalData: total,
-        currentPage,
-        totalPages,
+      totalData: total,
+      currentPage,
+      totalPages,
     });
   } catch (error) {
     console.error("Failed to fetch enrolled students:", error);

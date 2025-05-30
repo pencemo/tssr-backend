@@ -7,7 +7,6 @@ import {
   getVerifiedActiveStudyCenters,
   updateStudyCenter,
   editStudycenterFieldsByStudycenter,
-  editUserFields
 } from "../controllers/studycenterController.js";
 import { isAuthenticated } from "../middlewares/authMiddleware.js";
 
@@ -21,6 +20,6 @@ router.get("/getAllStudyCenterForExcel",isAuthenticated,getAllStudyCenterForExce
 // router.put("/getAllStudyCenterForExcel",isAuthenticated,getAllStudyCenterForExcel);
 router.get("/getCoursesOfStudyCenter",isAuthenticated,getCoursesWithBatchesOfAStudyCenter );
 router.post("/editStudyCenterFields",isAuthenticated,editStudycenterFieldsByStudycenter);
-router.post("/editUserProfile", isAuthenticated, editUserFields);
+router.post("/editUserProfile", isAuthenticated);
 export default router;
 
