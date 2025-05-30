@@ -91,7 +91,7 @@ export const toggleSettingsField = async (req, res) => {
 
     return res.json({
       success: true,
-      message: `${key} updated successfully`,
+      message: `Settings updated successfully`,
       data: { [key]: settings[key] },
     });
   } catch (error) {
@@ -140,7 +140,7 @@ export const updateAdminAndUserFields = async (req, res) => {
     }
     await user.save()
     return res.status(200).json({
-      message: "user fields updated successfully",
+      message: "Profile updated .",
       success: true,
       data: user
     })

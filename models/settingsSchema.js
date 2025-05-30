@@ -41,6 +41,10 @@ const settingsSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
+    studyCenterUpdatePermission: {
+        type: Boolean,
+        default: false
+    },
     wholeAppLoginPermission: {
         type: Boolean,
         default: false

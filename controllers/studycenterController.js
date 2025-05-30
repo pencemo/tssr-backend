@@ -386,7 +386,6 @@ export const editStudycenterFieldsByStudycenter = async (req, res) => {
       phoneNumber,
       pincode,
       district,
-      state,
       place,
       centerHead
     } = req.body;
@@ -399,7 +398,6 @@ export const editStudycenterFieldsByStudycenter = async (req, res) => {
         phoneNumber,
         pincode,
         district,
-        state,
         place,
         centerHead,
       },

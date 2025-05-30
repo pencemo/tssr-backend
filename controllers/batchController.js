@@ -198,7 +198,7 @@ export const updateBatchDates = async (req, res) => {
           startDate,
           endDate,
           isAdmissionStarted: true,
-          admissionYear: year,
+          admissionYear: year || new Date().getFullYear(),
         },
       }
     );

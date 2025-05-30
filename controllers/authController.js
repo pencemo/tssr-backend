@@ -164,6 +164,8 @@ export const login = async (req, res) => {
             studyCenter: {
               id: studyCenter._id,
               name: studyCenter.name,
+              email: studyCenter.email,
+              phoneNumber: studyCenter.phoneNumber,
               regNo: studyCenter.regNo,
               renewalDate: studyCenter.renewalDate,
               isVerified: studyCenter.isVerified,
@@ -203,7 +205,7 @@ export const isOuth = async (req, res) => {
         .select("-password -__v -verificationCode")
         .populate(
           "studycenterId",
-          "name regNo renewalDate isVerified isActive place district pincode state centerHead atcId"
+          "name regNo email phoneNumber renewalDate isVerified isActive place district pincode state centerHead atcId"
         );
       
     }
