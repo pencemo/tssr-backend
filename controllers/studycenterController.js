@@ -378,8 +378,11 @@ export const getCoursesWithBatchesOfAStudyCenter = async (req, res) => {
 //edit studycenter fields
 export const editStudycenterFieldsByStudycenter = async (req, res) => {
   try {
+    // Get the studycenterId from the request object
     const id  = req.user.studycenterId;
+    // Log the studycenterId to the console
     console.log("Editing study center with ID:", id);
+    // Destructure the request body to get the fields to be updated
     const {
       name,
       email,
@@ -390,6 +393,7 @@ export const editStudycenterFieldsByStudycenter = async (req, res) => {
       centerHead
     } = req.body;
 
+    // Update the studycenter with the new fields
     const updatedCenter = await StudyCenter.findByIdAndUpdate(
       id,
       {
@@ -404,13 +408,16 @@ export const editStudycenterFieldsByStudycenter = async (req, res) => {
       { new: true, runValidators: true }
     );
 
+    // If the studycenter is not found, return a 404 status code with a message
     if (!updatedCenter) {
-      return res.status(404).json({ error: 'Study Center not found' });
+      return res.status(404).json({ message: 'Study Center not found' , success:false });
     }
 
-    res.json({ message: 'Study Center updated successfully', data: updatedCenter });
+    // If the studycenter is found, return a 200 status code with a message and the updated studycenter
+    res.json({ message: 'Study Center updated successfully', data: updatedCenter , success:true});
   } catch (err) {
+    // If there is an error, log it to the console and return a 500 status code with a message
     console.error(err);
-    res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ message: 'Server error' , success:false});
   }
 };
