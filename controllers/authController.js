@@ -161,7 +161,7 @@ export const login = async (req, res) => {
           verificationCode: null,
           // Exclude password from response
           ...(user.role === "studycenter_user" && {
-            studyCenter: {
+            studyCenterId: {
               id: studyCenter._id,
               name: studyCenter.name,
               email: studyCenter.email,
