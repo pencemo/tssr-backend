@@ -1,19 +1,30 @@
 import Product from '../models/productSchema.js'
 export const addProduct = async (req, res) => {
     try {
-        const { name, course, description, price } = req.body;
-        const product = await Product.create({
-          name,
-          courseId:course,
-          description,
-          price,
+      const { name, course, description, price } = req.body;
+      if (!name || !description || !price) {
+        return res.status(400).json({
+          message: "Please fill require the fields.",
+          success: false,
         });
-        await product.save();
-        return res.json({
-            message: "Product has added .",
-            success: true,
-            product
-        })   
+      }
+      // Build product data dynamically
+      const productData = {
+        name,
+        description,
+        price,
+      };
+
+      if (course && course.trim() !== "") {
+        productData.courseId = course;
+      }
+      const product = await Product.create(productData);
+      await product.save();
+      return res.json({
+        message: "Product has added .",
+        success: true,
+        product,
+      });
     } catch (error) {
         return res.json({
             message: error.message,
@@ -70,7 +81,7 @@ export const updateProductById = async (req, res) => {
     const updateFields = {};
 
     if (name) updateFields.name = name;
-    if (course) updateFields.courseId = course;
+    if (course && course.trim() !== "") updateFields.courseId = course;
     if (description) updateFields.description = description;
     if (price !== undefined) updateFields.price = price;
 
@@ -90,7 +101,7 @@ export const updateProductById = async (req, res) => {
     return res.status(200).json({
       message: "Product has been updated successfully.",
       success: true,
-      product: updatedProduct,
+      data: updatedProduct,
     });
   } catch (error) {
     console.error("Error updating product:", error);
