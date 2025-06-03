@@ -29,7 +29,7 @@ export const createNotification = async (req, res) => {
       .json({
         success: true,
         message: "Notification created successfully!",
-        notification: newNotification,
+        data: newNotification,
       });
   } catch (error) {
     console.error(error);
@@ -67,7 +67,8 @@ export const getNotificationsOfEachUser = async (req, res) => {
 
       return res.status(200).json({
         success: true,
-        notifications: notifications, 
+        data: notifications,
+        message:"Notifications fetched successfully"
       });
         
     } catch (error) {
