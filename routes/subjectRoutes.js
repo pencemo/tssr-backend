@@ -4,8 +4,8 @@ import {
   getAllSubjects,
   getSubjectById,
   createSubject,
-  updateSubject,
-  deleteSubject,
+  getAlltrueAndfalseSubjects,
+  updateSubjectToggle,
 } from "../controllers/subjectController.js";
 
 const router = express.Router();
@@ -14,7 +14,6 @@ const router = express.Router();
 router.get("/getAllSubjects", getAllSubjects);
 router.get("/getsubjectbyid/:id", getSubjectById);
 router.post("/create", createSubject);
-router.put("/update", updateSubject);
-router.delete("/delete/:id", deleteSubject);
-
+router.put("/update", updateSubjectToggle);
+router.get("/getAlltrueAndfalseSubjects", getAlltrueAndfalseSubjects);
 export default router;

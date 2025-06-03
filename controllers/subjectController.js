@@ -63,9 +63,8 @@ export const createSubject = async (req, res) => {
   }
 };
 
-export const updateSubject = async (req, res) => {
+export const updateSubjectToggle = async (req, res) => {
   const { id } = req.query;
-
   try {
     const subject = await Subject.findById(id);
     if (!subject) {
@@ -75,13 +74,12 @@ export const updateSubject = async (req, res) => {
       });
     }
 
-    // Update fields
-    subject.name = req.body.name || subject.name;
-    subject.code = req.body.code || subject.code;
-    subject.isActive =
-      req.body.isActive !== undefined ? req.body.isActive : subject.isActive;
+
+    subject.isActive = !subject.isActive;
+      
 
     const updatedSubject = await subject.save();
+
 
     res.status(200).json({
       success: true,
@@ -97,16 +95,20 @@ export const updateSubject = async (req, res) => {
   }
 };
 
-export const deleteSubject = async (req, res) => {
+export const getAlltrueAndfalseSubjects = async (req, res) => {
   try {
-    const subject = await Subject.findById(req.params.id);
-    if (!subject) {
-      return res.status(404).json({ message: "Subject not found" });
-    }
+    const subjects = await Subject.find();
 
-    await Subject.findByIdAndDelete(req.params.id);
-    res.status(200).json({ message: "Subject deleted successfully" });
+    res.status(200).json({
+      success: true,
+      message: "Fetched active subjects successfully",
+      data: subjects,
+    });
   } catch (error) {
-    res.status(400).json({ message: "Error deleting subject", error });
+    res.status(400).json({
+      success: false,
+      message: "Error retrieving subjects",
+      error: error.message,
+    });
   }
 };

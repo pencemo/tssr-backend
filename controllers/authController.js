@@ -150,7 +150,6 @@ export const login = async (req, res) => {
     });
     
 
-    
     res.status(200).json({
       success: true,
       message: "Login successful",
@@ -161,7 +160,7 @@ export const login = async (req, res) => {
           verificationCode: null,
           // Exclude password from response
           ...(user.role === "studycenter_user" && {
-            studyCenterId: {
+            studycenterId: {
               id: studyCenter._id,
               name: studyCenter.name,
               email: studyCenter.email,
