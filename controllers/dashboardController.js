@@ -44,6 +44,7 @@ export async function getRecentBatchesWithEnrollmentCount(req, res) {
           enrolledStudentCount: count,
         });
         }
+        stats.reverse();
         const today = new Date();
         const totalEnrollmentInThisYear = await Enrollment.find({ year: today.getFullYear() }).countDocuments();
         const totalEnrollments = await Enrollment.countDocuments();
