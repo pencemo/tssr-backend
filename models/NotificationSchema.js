@@ -15,6 +15,8 @@ const NotificationSchema = new mongoose.Schema({
     type: Boolean,
     required: true,
   },
+}, {
+  timestamps: true,
 });
 
 export default mongoose.model("Notification", NotificationSchema);
