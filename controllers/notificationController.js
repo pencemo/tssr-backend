@@ -3,7 +3,6 @@ import Notification from "../models/NotificationSchema.js";
 
 export const createNotification = async (req, res) => {
   const { title, description, attachedFileUrl,category,receiverId } =req.body;
-
   try {
       if (!title || !description) {
           return res.json({
@@ -11,8 +10,6 @@ export const createNotification = async (req, res) => {
               success: false,
           });
       }
-
-
     const newNotification = new Notification({
       title,
       description,
@@ -23,7 +20,6 @@ export const createNotification = async (req, res) => {
     });
       
     await newNotification.save();
-
     res
       .status(201)
       .json({
@@ -42,46 +38,7 @@ export const createNotification = async (req, res) => {
   }
 };
 
-// export const getNotificationsOfEachUser = async (req, res) => {
-//     const user = req.user;
-//     try {
-//         let notifications = [];
-//       if (!user.isAdmin) {
 
-//         notifications = await Notification.find({
-//           receiverIsAdmin: false,
-//           $or: [
-//             { receiverId: { $in: [user.studycenterId] } },
-//             { receiverId: { $size: 0 } },
-//           ],
-//         })
-//           .select("-receiverId")
-//           .sort({ createdAt: -1 })
-//           .exec();
-        
-//       } else {
-//         notifications = await Notification.find({
-//           receiverIsAdmin: true,
-//         })
-//           .select("-receiverId")
-//           .sort({ createdAt: -1 })
-//           .exec();
-//         }
-
-//       return res.status(200).json({
-//         success: true,
-//         data: notifications,
-//         message:"Notifications fetched successfully"
-//       });
-        
-//     } catch (error) {
-//       console.error(error);
-//       res.status(500).json({
-//         success: false,
-//         message: "Server error while fetching notifications.",
-//       });
-//     }
-// }
 
 export const getNotificationsOfEachUser = async (req, res) => {
   try {
