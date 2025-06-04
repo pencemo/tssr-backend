@@ -62,7 +62,7 @@ export const getNotificationsOfEachUser = async (req, res) => {
               receiverIsAdmin:true,
             })
               .select("-receiverId")
-                .sort({ createdAt: -1 })
+              .sort({ createdAt: -1 })
         }
 
       return res.status(200).json({
