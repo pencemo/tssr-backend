@@ -35,8 +35,9 @@ app.use(cors({
       //origin: process.env.FRONTEND_URL,
     origin: (origin, callback) => {
       const allowedOrigins = [
-          'http://192.168.1.4:5173',
-          'http://localhost:5173'
+        // 'http://192.168.1.4:5173',
+        //'http://localhost:5173'
+        "https://demo.neptunemark.com/",
       ];
       
       // Allow requests with no origin (like mobile apps or curl requests)
