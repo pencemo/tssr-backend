@@ -32,23 +32,23 @@ app.use(express.urlencoded({ extended: true }));
 
 // app.use(cors(corsOptions));
 app.use(cors({
-      //origin: process.env.FRONTEND_URL,
-    origin: (origin, callback) => {
-      const allowedOrigins = [
-        // 'http://192.168.1.4:5173',
-        //'http://localhost:5173'
-        "https://demo.neptunemark.com/",
-      ];
+      origin: process.env.FRONTEND_URL,
+  //   origin: (origin, callback) => {
+  //     const allowedOrigins = [
+  //       // 'http://192.168.1.4:5173',
+  //       //'http://localhost:5173'
+  //       "https://demo.neptunemark.com/",
+  //     ];
       
-      // Allow requests with no origin (like mobile apps or curl requests)
-      if (!origin) return callback(null, true);
+  //     // Allow requests with no origin (like mobile apps or curl requests)
+  //     if (!origin) return callback(null, true);
       
-      if (allowedOrigins.includes(origin)) {
-          return callback(null, true);
-      }
+  //     if (allowedOrigins.includes(origin)) {
+  //         return callback(null, true);
+  //     }
       
-      return callback(new Error(`Not allowed by CORS for origin: ${origin}`), false);
-  },
+  //     return callback(new Error(`Not allowed by CORS for origin: ${origin}`), false);
+  // },
     credentials: true,
     methods: ["GET", "POST","PUT","DELETE"],
 }))
