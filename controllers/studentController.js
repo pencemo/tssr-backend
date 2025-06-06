@@ -152,7 +152,6 @@ export const getStudyCenterStudents = async (req, res) => {
         path: "studycenterId",
         select: "name",
       });
-
     // Filter out enrollments where studentId is null (no match on search)
     enrollments = enrollments.filter((en) => en.studentId);
 
@@ -219,6 +218,7 @@ export const getStudyCenterStudents = async (req, res) => {
       enrollmentId: en._id,
       year: en.year,
     }));
+    
 
     res.json({
       success: true,

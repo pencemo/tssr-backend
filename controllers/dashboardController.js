@@ -18,7 +18,7 @@ const MONTHS = [
   "December",
 ];
 
-export async function getRecentBatchesWithEnrollmentCount(req, res) {
+export async function getDashBoardDataForAdmin(req, res) {
     try {
       const now = new Date();
       const stats = [];
@@ -41,7 +41,7 @@ export async function getRecentBatchesWithEnrollmentCount(req, res) {
         stats.push({
           month: MONTHS[month],
           year,
-          enrolledStudentCount: count,
+          students: count,
         });
         }
         stats.reverse();
@@ -68,3 +68,57 @@ export async function getRecentBatchesWithEnrollmentCount(req, res) {
       return res.status(500).json({ success: false, message: "Server error" });
     }
 }
+
+export const getDashboardDataForStudycenter = async (req, res) => {
+  try {
+    const studyCenterId = req.user?.studycenterId;
+
+    if (!studyCenterId) {
+      return res.status(400).json({
+        success: false,
+        message: "Study center ID not provided in the user object.",
+      });
+    }
+
+    const currentYear = new Date().getFullYear();
+
+    const [totalStudents, currentYearStudents, studyCenter] = await Promise.all(
+      [
+        Enrollment.countDocuments({ studycenterId: studyCenterId }),
+        Enrollment.countDocuments({
+          studycenterId: studyCenterId,
+          year: currentYear,
+        }),
+        StudyCenter.findById(studyCenterId).populate("courses").lean(),
+      ]
+    );
+
+    if (!studyCenter) {
+      return res.status(404).json({
+        success: false,
+        message: "Study center not found.",
+      });
+    }
+
+    const coursesCount = Array.isArray(studyCenter.courses)
+      ? studyCenter.courses.length
+      : 0;
+
+    return res.status(200).json({
+      success: true,
+      message: "Dashboard data fetched successfully.",
+      data: {
+        students: totalStudents,
+        studentsOfCurrentYear: currentYearStudents,
+        courses: coursesCount,
+      },
+    });
+  } catch (error) {
+    console.error("Error in getDashboardDataForStudycenter:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error. Please try again later.",
+    });
+  }
+};
+
