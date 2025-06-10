@@ -144,15 +144,15 @@ export const login = async (req, res) => {
     }
       res.cookie("token", token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production"? true : false, 
-        sameSite:process.env.NODE_ENV === "production" ? "none" : "lax", 
+        secure:process.env.NODE_ENV === "production",
+        sameSite:process.env.NODE_ENV == "production" ? "none" : "lax", 
         maxAge: 7 * 24 * 60 * 60 * 1000
       })
 
 
     res.status(200).json({
       success: true,
-      message: "Login successful",
+      message: "Login successfull",
       data: {
         user: {
           ...user._doc,
@@ -220,7 +220,11 @@ export const isOuth = async (req, res) => {
 
 export const logout = async (req, res) => {
   try {
-    res.clearCookie("token");
+    res.clearCookie("token", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    });   
     return res.status(200).json({ success: true, message: "Logout successful" });
   } catch (err) {
     console.error("Logout error:", err);
