@@ -17,6 +17,7 @@ import productRoutes from './routes/productRoutes.js';
 import orderRoutes from './routes/orderRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
 import dashboardRoutes from './routes/dashboardRoutes.js';
+import ExamScheduleRoutes from './routes/ExamRoutes.js';
 dotenv.config();
 const app = express();
 app.use(cookieParser());
@@ -68,6 +69,7 @@ app.use('/api/products', productRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/notifications", notificationRoutes);
+app.use("/api/exam", ExamScheduleRoutes);
 app.use('/', (req,res) => {
   res.send("This api not listed");
 })

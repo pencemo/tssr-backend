@@ -132,11 +132,6 @@ export const getOrdersByStatus = async (req, res) => {
     const { page, limit, search, status } = req.query;
    // console.log(req.query);
     const skip = (page - 1) * limit;
-    console.log("page :", page)
-    console.log("limit :", limit)
-    console.log("search :", search)
-    console.log("status :", status)
-
     const searchRegex = new RegExp(search, "i");
 
     // Fetch all matching orders with the given status
@@ -150,8 +145,6 @@ export const getOrdersByStatus = async (req, res) => {
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(Number(limit));
-    console.log(orders);
-
     // Filter out orders where productId did not match (null after populate)
     const filteredOrders = orders.filter((o) => o.productId);
 
