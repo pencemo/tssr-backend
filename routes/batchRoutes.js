@@ -13,11 +13,11 @@ router.get("/admissionOpened", getAdmissionOpenedBatches);
 router.get("/admissionScheduled", getAdmissionScheduledBatches);
 router.get("/admissionNotOpen", getAdmissionNotAvailableBatches);
 router.post("/toggleBatchStatus", ToggleAdmissionStatusToClose);
-//
+
 router.get(
   "/admissionOpenedBatchesOfCourse",getAdmissionOpenedBatchesOfaCourse
 );
-// Get all batches for a specific study center
+
 router.get(
   "/getAdmissionOpenBatchesByStudyCenter", isAuthenticated, getAdmissionOpenBatchesByStudyCenter
 );

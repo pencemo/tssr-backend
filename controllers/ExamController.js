@@ -1,6 +1,8 @@
 import Batch from "../models/batchSchema.js";
 import ExamSchedule from "../models/examScheduleSchema.js";
-import Notification from "../models/NotificationSchema.js";
+import StudyCenter from "../models/studyCenterSchema.js";
+import { sendNotification } from "../utils/notification.js";
+import moment from "moment";
 
 export const scheduleExam = async (req, res) => {
   try {
@@ -14,7 +16,7 @@ export const scheduleExam = async (req, res) => {
       });
     }
     let batchIds = [];
-    if (courses.length === 0) {
+    if (!courses || courses.length === 0 ) {
       batchIds = (
         await Batch.find(
           { month: { $regex: `^${batch}$`, $options: "i" } },
@@ -46,8 +48,6 @@ export const scheduleExam = async (req, res) => {
       }
     }
 
-
-
     // Create new HallTicket entry
     const ScheduledExam = await ExamSchedule.create({
       examName,
@@ -64,14 +64,13 @@ export const scheduleExam = async (req, res) => {
       },
     });
     if (ScheduledExam) {
-      const newNotification = new Notification({
+      await sendNotification({
         title: "Exam Scheduled",
-        description: `${examName} is scheduled for ${batch} batch on ${date.from} to ${date.to} .`,
+        description: `${examName} is scheduled for ${batch} batch from ${moment(date.from).format("DD/MM/YYYY")} to ${moment(date.to).format("DD/MM/YYYY")}.\n Please note the dates and prepare accordingly.`,
         category: "Exam Schedule",
-        receiverIsAdmin: false,
       });
-      await newNotification.save();
     }
+
     return res.status(201).json({
       success: true,
       message: "Exam scheduled successfully",
@@ -101,22 +100,20 @@ export const closeScheduledExamBatch = async (req, res) => {
     // Find and update the schedule by ID, removing the batchId
     const updatedSchedule = await ExamSchedule.findByIdAndUpdate(
       examScheduleId,
-      { $pull: { batches: batchId } },
-      { new: true }
+      { $pull: { batches: batchId } }
     );
 
     // Check if the schedule was found
     if (!updatedSchedule) {
       return res.status(404).json({
         success: false,
-        message: "Exam schedule not found",
+        message: "Exam schedule not founded",
       });
     }
 
     return res.status(200).json({
       success: true,
       message: "Exam schedule for this batch is now closed.",
-      data: updatedSchedule,
     });
   } catch (error) {
     console.error("Error removing batch from exam schedule:", error);
@@ -145,7 +142,7 @@ export const getScheduledExamBatches = async (req, res) => {
     const batchIds = schedules.flatMap((schedule) =>
       schedule.batches.map((batchId) => batchId.toString())
     );
-    console.log(batchIds)
+
     const batches = await Batch.find({ _id: { $in: batchIds } })
       .populate("courseId", "name")
       .lean();
@@ -178,3 +175,105 @@ export const getScheduledExamBatches = async (req, res) => {
   }
 };
 
+export const getScheduledExamBatchesOfStudyCenter = async (req, res) => {
+  try {
+    const studyCenterId = req.user?.studycenterId;
+
+    if (!studyCenterId) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid study center ID",
+      });
+    }
+
+    const studyCenter = await StudyCenter.findById(studyCenterId)
+      .select("courses name")
+      .lean();
+
+    if (!studyCenter || !studyCenter.courses?.length) {
+      return res.status(404).json({
+        success: false,
+        message: "No courses found for this study center",
+      });
+    }
+
+    const centerBatches = await Batch.find({
+      courseId: { $in: studyCenter.courses },
+    })
+      .select("_id month courseId")
+      .populate("courseId", "name")
+      .lean();
+
+    const batchIds = centerBatches.map((batch) => batch._id.toString());
+
+    if (!batchIds.length) {
+      return res.status(200).json({
+        success: true,
+        message: "No batches available for this center",
+        data: [],
+      });
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const examSchedules = await ExamSchedule.find({
+      "examDate.to": { $gte: today },
+      batches: { $in: batchIds },
+    })
+      .select("examName examDate examTime year batches changedCenters")
+      .lean();
+
+    if (!examSchedules.length) {
+      return res.status(200).json({
+        success: true,
+        message: "No upcoming scheduled exams found for this center",
+        data: [],
+      });
+    }
+
+    const batchMap = {};
+    centerBatches.forEach((batch) => {
+      batchMap[batch._id.toString()] = {
+        batchId: batch._id,
+        batchMonth: batch.month,
+        courseName: batch.courseId?.name || "N/A",
+      };
+    });
+
+    
+    const formattedSchedules = examSchedules.map((schedule) => {
+      const matchedBatches = schedule.batches
+        .map((id) => batchMap[id.toString()])
+        .filter(Boolean);
+
+    
+      const changedCenter = schedule.changedCenters?.find(
+        (c) => c.centerId?.toString() === studyCenterId.toString()
+      );
+
+      const location = changedCenter?.newLocation || studyCenter.name;
+
+      return {
+        examScheduleId: schedule._id,
+        examName: schedule.examName,
+        year: schedule.year,
+        examDate: schedule.examDate,
+        examTime: schedule.examTime,
+        location, 
+        batches: matchedBatches,
+      };
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: formattedSchedules.filter((s) => s.batches.length > 0),
+    });
+  } catch (err) {
+    console.error("Error in getScheduledExamBatchesOfStudyCenter:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Server error while fetching exam schedules",
+    });
+  }
+};
