@@ -41,6 +41,7 @@ export const scheduleExam = async (req, res) => {
       if (!batchIds || batchIds.length == 0) {
         return res.json({
           message: ` There is No ${batch} Batch for Selected Course `,
+          success: false,
         });
       }
     }
@@ -176,3 +177,4 @@ export const getScheduledExamBatches = async (req, res) => {
     });
   }
 };
+
