@@ -1,5 +1,6 @@
 import Batch from "../models/batchSchema.js";
 import ExamSchedule from "../models/examScheduleSchema.js";
+import Notification from "../models/NotificationSchema.js";
 
 export const scheduleExam = async (req, res) => {
   try {
@@ -41,7 +42,15 @@ export const scheduleExam = async (req, res) => {
         to:time.to,
       },
     });
-
+    if (hallTicket) {
+          const newNotification = new Notification({
+            title: "Exam Scheduled",
+            description: `${examName} is scheduled for ${batch} batch on ${date.from} to ${date.to} .`,
+            category: "Exam Schedule",
+            receiverIsAdmin: false,
+          });    
+          await newNotification.save();
+    }
     return res.status(201).json({
       success: true,
       message: "Exam scheduled successfully",
@@ -105,25 +114,21 @@ export const getScheduledExamBatches = async (req, res) => {
     const schedules = await ExamSchedule.find({
       "examDate.to": { $gte: today },
     })
-      .select("batches examDate examTime")
+      .select("batches examDate examTime examName year")
       .lean();
 
     if (schedules.length == 0) {
       return res.status(200).json({ success: true, message:"No batch is schedules" });
     }
 
-    const batchIds = [
-      ...new Set(
-        schedules.flatMap((schedule) =>
-          schedule.batches.map((batchId) => batchId.toString())
-        )
-      ),
-    ];
-    //console.log(batchIds)
+    const batchIds = schedules.flatMap((schedule) =>
+      schedule.batches.map((batchId) => batchId.toString())
+    );
+    console.log(batchIds)
     const batches = await Batch.find({ _id: { $in: batchIds } })
-      .populate("courseId")
+      .populate("courseId", "name")
       .lean();
-    console.log(batches)
+    
     const batchMap = {};
     batches.forEach((b) => {
       batchMap[b._id.toString()] = {
@@ -135,6 +140,8 @@ export const getScheduledExamBatches = async (req, res) => {
 
     const response = schedules.map((s) => ({
       examScheduleId: s._id,
+      examName: s.examName,
+      year: s.year,
       examDate: s.examDate,
       examTime: s.examTime || "not available",
       batches: s.batches.map((batchId) => batchMap[batchId.toString()]), // Array of batch data

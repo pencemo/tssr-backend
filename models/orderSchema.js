@@ -28,3 +28,6 @@ const orderSchema = new Schema({
 const Result = mongoose.model("Order", orderSchema);
 
 export default Result;
+
+
+
