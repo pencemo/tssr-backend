@@ -37,7 +37,7 @@ export const hallTicketDownload = async (req, res) => {
       
       console.log(enrollment);
 
-    if (!enrollment  || !enrollment.length === 0) {
+    if (!enrollment) {
       return res.status(404).json({
         success: false,
         message: "No active enrollment or batch/course info found",
@@ -92,7 +92,7 @@ export const hallTicketDownload = async (req, res) => {
           profileImage:student.profileImage,
         examName: examSchedule.examName,
         examDate: examSchedule.examDate,
-        examTime: examSchedule.examTime || "N/A",
+        examTime: examSchedule.examTime,
         examCenter: examCenterLocation,
       },
     });
