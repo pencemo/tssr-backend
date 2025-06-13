@@ -18,6 +18,7 @@ import orderRoutes from './routes/orderRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
 import dashboardRoutes from './routes/dashboardRoutes.js';
 import ExamScheduleRoutes from './routes/ExamRoutes.js';
+import hallTicketRoutes from './routes/hallTicketRoutes.js';
 dotenv.config();
 const app = express();
 app.use(cookieParser());
@@ -70,6 +71,7 @@ app.use("/api/orders", orderRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/exam", ExamScheduleRoutes);
+app.use('/api/hallticket',hallTicketRoutes)
 app.use('/', (req,res) => {
   res.send("This api not listed");
 })

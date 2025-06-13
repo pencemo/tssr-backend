@@ -277,3 +277,6 @@ export const getScheduledExamBatchesOfStudyCenter = async (req, res) => {
     });
   }
 };
+
+
+
