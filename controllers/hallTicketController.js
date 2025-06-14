@@ -88,8 +88,9 @@ export const hallTicketDownload = async (req, res) => {
       data: {
         studentName: student.name,
         registrationNo,
-          courseName,
-          profileImage:student.profileImage,
+        courseName,
+        profileImage: student.profileImage,
+        studyCenter:studyCenter.name,
         examName: examSchedule.examName,
         examDate: examSchedule.examDate,
         examTime: examSchedule.examTime,

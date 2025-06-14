@@ -1,4 +1,5 @@
 import Enrollment from "../models/enrollmentSchema.js";
+import { Types } from "mongoose";
 
 // export const getStudyCenterStudents = async (req, res) => {
 //   const user = req.user;
@@ -16,15 +17,15 @@ import Enrollment from "../models/enrollmentSchema.js";
 //       courseId,
 //       year,
 //       search = "",
-//       sortBy = "createdAt",
-//       order = "asc",
+//       sortBy = "Name",
+//       order = "desc",
 //       page = 1,
 //       limit = 10,
 //     } = req.query;
 
-//     const filter = {  };
+//     const filter = {};
 //     if (studycenterId) filter.studycenterId = studycenterId;
-//       if (batchId) filter.batchId = batchId;
+//     if (batchId) filter.batchId = batchId;
 //     if (courseId) filter.courseId = courseId;
 //     if (year) filter.year = parseInt(year);
 
@@ -46,16 +47,39 @@ import Enrollment from "../models/enrollmentSchema.js";
 //       .populate({ path: "courseId", select: "name" })
 //       .populate({
 //         path: "studycenterId",
-//         select: "name"
+//         select: "name",
 //       });
-
-//     // Filter out students not matched
+//     // Filter out enrollments where studentId is null (no match on search)
 //     enrollments = enrollments.filter((en) => en.studentId);
 
-//     // Sort
+//     // Group by studentId but keep enrollments if they match search, show only one per student
+//     const seenStudentIds = new Set();
+//     const uniqueOrMatchedEnrollments = [];
+
+//     enrollments.forEach((en) => {
+//       const studentId = en.studentId._id.toString();
+
+//       // Check if search matched this enrollment's student fields
+//       const matched =
+//         search &&
+//         (en.studentId.name?.toLowerCase().includes(search.toLowerCase()) ||
+//           en.studentId.phoneNumber?.includes(search) ||
+//           en.studentId.registrationNumber
+//             ?.toLowerCase()
+//             .includes(search.toLowerCase()));
+
+//       if (!seenStudentIds.has(studentId) || matched) {
+//         seenStudentIds.add(studentId);
+//         uniqueOrMatchedEnrollments.push(en);
+//       }
+//     });
+
+//     enrollments = uniqueOrMatchedEnrollments;
+
+//     // Sort enrollments
 //     enrollments = enrollments.sort((a, b) => {
 //       let valA, valB;
-//       if (sortBy === "student.name") {
+//       if (sortBy === "byName") {
 //         valA = a.studentId.name?.toLowerCase() || "";
 //         valB = b.studentId.name?.toLowerCase() || "";
 //       } else if (sortBy === "student.phoneNumber") {
@@ -78,6 +102,7 @@ import Enrollment from "../models/enrollmentSchema.js";
 //       currentPage * limit
 //     );
 
+//     // Format response as before
 //     const formatted = paginated.map((en) => ({
 //       studentName: en.studentId.name,
 //       email: en.studentId.email,
@@ -88,21 +113,23 @@ import Enrollment from "../models/enrollmentSchema.js";
 //       courseName: en.courseId?.name || "",
 //       studycenterName: en.studycenterId?.name || "",
 //       enrollmentId: en._id,
-//       year:en.year
+//       year: en.year,
 //     }));
+    
 
 //     res.json({
 //       success: true,
 //       data: formatted,
-//         totalData: total,
-//         currentPage,
-//         totalPages,
+//       totalData: total,
+//       currentPage,
+//       totalPages,
 //     });
 //   } catch (error) {
 //     console.error("Failed to fetch enrolled students:", error);
 //     res.status(500).json({ success: false, message: "Server Error" });
 //   }
 // };
+
 
 export const getStudyCenterStudents = async (req, res) => {
   const user = req.user;
@@ -115,123 +142,235 @@ export const getStudyCenterStudents = async (req, res) => {
       studycenterId = req.user.studycenterId;
     }
 
-    const {
-      batchId,
-      courseId,
-      year,
-      search = "",
-      sortBy = "Name",
-      order = "desc",
-      page = 1,
-      limit = 10,
-    } = req.query;
+    // Convert query parameters to numbers
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const year = req.query.year ? parseInt(req.query.year) : undefined;
 
-    const filter = {};
-    if (studycenterId) filter.studycenterId = studycenterId;
-    if (batchId) filter.batchId = batchId;
-    if (courseId) filter.courseId = courseId;
-    if (year) filter.year = parseInt(year);
+    const { batchId, courseId, search = "" } = req.query;
 
-    // Get all enrollments (no skip/limit yet)
-    let enrollments = await Enrollment.find(filter)
-      .populate({
-        path: "studentId",
-        select:
-          "name email phoneNumber registrationNumber profileImage createdAt",
-        match: {
-          $or: [
-            { name: new RegExp(search, "i") },
-            { phoneNumber: new RegExp(search, "i") },
-            { registrationNumber: new RegExp(search, "i") },
-          ],
+    // Convert string IDs to ObjectId
+    const toObjectId = (id) => (id ? new Types.ObjectId(id) : null);
+
+    // Base match stage for enrollments
+    const matchStage = {};
+    if (studycenterId) matchStage.studycenterId = toObjectId(studycenterId);
+    if (batchId) matchStage.batchId = toObjectId(batchId);
+    if (courseId) matchStage.courseId = toObjectId(courseId);
+    if (year) matchStage.year = year;
+
+    const aggregationPipeline = [
+      // Initial match for enrollments
+      { $match: matchStage },
+
+      // Lookup student details
+      {
+        $lookup: {
+          from: "students",
+          localField: "studentId",
+          foreignField: "_id",
+          as: "student",
         },
-      })
-      .populate({ path: "batchId", select: "month" })
-      .populate({ path: "courseId", select: "name" })
-      .populate({
-        path: "studycenterId",
-        select: "name",
-      });
-    // Filter out enrollments where studentId is null (no match on search)
-    enrollments = enrollments.filter((en) => en.studentId);
+      },
+       { $unwind: { path: "$student", preserveNullAndEmptyArrays: false } },
 
-    // Group by studentId but keep enrollments if they match search, show only one per student
-    const seenStudentIds = new Set();
-    const uniqueOrMatchedEnrollments = [];
+      // Lookup batch details
+      {
+        $lookup: {
+          from: "batches",
+          localField: "batchId",
+          foreignField: "_id",
+          as: "batch",
+        },
+      },
+       { $unwind: { path: "$batch", preserveNullAndEmptyArrays: true } },
 
-    enrollments.forEach((en) => {
-      const studentId = en.studentId._id.toString();
+      // Lookup course details
+      {
+        $lookup: {
+          from: "courses",
+          localField: "courseId",
+          foreignField: "_id",
+          as: "course",
+        },
+      },
+       { $unwind: { path: "$course", preserveNullAndEmptyArrays: true } },
 
-      // Check if search matched this enrollment's student fields
-      const matched =
-        search &&
-        (en.studentId.name?.toLowerCase().includes(search.toLowerCase()) ||
-          en.studentId.phoneNumber?.includes(search) ||
-          en.studentId.registrationNumber
-            ?.toLowerCase()
-            .includes(search.toLowerCase()));
+      // Lookup studycenter details
+      {
+        $lookup: {
+          from: "studycenters",
+          localField: "studycenterId",
+          foreignField: "_id",
+          as: "studycenter",
+        },
+      },
+       { $unwind: { path: "$studycenter", preserveNullAndEmptyArrays: true } },
 
-      if (!seenStudentIds.has(studentId) || matched) {
-        seenStudentIds.add(studentId);
-        uniqueOrMatchedEnrollments.push(en);
-      }
-    });
+      // Apply search filter after all lookups
+      ...(search
+        ? [
+            {
+              $match: {
+                $or: [
+                  { "student.name": new RegExp(search, "i") },
+                  { "student.phoneNumber": new RegExp(search, "i") },
+                  { "student.registrationNumber": new RegExp(search, "i") },
+                ],
+              },
+            },
+          ]
+        : []),
 
-    enrollments = uniqueOrMatchedEnrollments;
+     
+      { $sort: { "student.createdAt": -1 } },
 
-    // Sort enrollments
-    enrollments = enrollments.sort((a, b) => {
-      let valA, valB;
-      if (sortBy === "byName") {
-        valA = a.studentId.name?.toLowerCase() || "";
-        valB = b.studentId.name?.toLowerCase() || "";
-      } else if (sortBy === "student.phoneNumber") {
-        valA = a.studentId.phoneNumber || "";
-        valB = b.studentId.phoneNumber || "";
-      } else {
-        valA = new Date(a.studentId.createdAt);
-        valB = new Date(b.studentId.createdAt);
-      }
-      return order === "desc" ? (valB > valA ? 1 : -1) : valA > valB ? 1 : -1;
-    });
+      // Group by student only when not searching
+      ...(!search
+        ? [
+            {
+              $group: {
+                _id: "$student._id", // Group by student ID
+                doc: { $first: "$$ROOT" }, // Keep only the first (newest) enrollment
+              },
+            },
+            {
+              $replaceRoot: { newRoot: "$doc" }, // Restore the document structure
+            },
+          ]
+        : []),
 
-    const total = enrollments.length;
+      // Project final fields
+      {
+        $project: {
+          studentName: "$student.name",
+          email: "$student.email",
+          phoneNumber: "$student.phoneNumber",
+          registrationNumber: "$student.registrationNumber",
+          profileImage: "$student.profileImage",
+          batchMonth: "$batch.month",
+          courseName: "$course.name",
+          studycenterName: "$studycenter.name",
+          enrollmentId: "$_id",
+          year: 1,
+          createdAt: "$student.createdAt",
+        },
+      },
+
+      // Pagination using facet
+      {
+        $facet: {
+          metadata: [{ $count: "total" }],
+          data: [{ $skip: (page - 1) * limit }, { $limit: limit }],
+        },
+      },
+    ];
+
+    const result = await Enrollment.aggregate(aggregationPipeline);
+
+    const total = result[0]?.metadata[0]?.total || 0;
     const totalPages = Math.ceil(total / limit);
-    const currentPage = parseInt(page);
-
-    // Apply pagination *after* filtering + sorting
-    const paginated = enrollments.slice(
-      (currentPage - 1) * limit,
-      currentPage * limit
-    );
-
-    // Format response as before
-    const formatted = paginated.map((en) => ({
-      studentName: en.studentId.name,
-      email: en.studentId.email,
-      phoneNumber: en.studentId.phoneNumber,
-      registrationNumber: en.studentId.registrationNumber,
-      profileImage: en.studentId.profileImage,
-      batchMonth: en.batchId?.month || "",
-      courseName: en.courseId?.name || "",
-      studycenterName: en.studycenterId?.name || "",
-      enrollmentId: en._id,
-      year: en.year,
-    }));
-    
+    const currentPage = page;
 
     res.json({
       success: true,
-      data: formatted,
+      data: result[0]?.data || [],
       totalData: total,
       currentPage,
       totalPages,
     });
   } catch (error) {
     console.error("Failed to fetch enrolled students:", error);
-    res.status(500).json({ success: false, message: "Server Error" });
+    res.status(500).json({
+      success: false,
+      message: "Server Error",
+      error: error.message,
+    });
   }
 };
+
+export const getAllStudentsSample = async (req, res) => {
+  const user = req.user;
+  let studycenterId;
+
+  try {
+    if (user.isAdmin) {
+      studycenterId = req.query.studyCentre;
+    } else {
+      studycenterId = req.user.studycenterId;
+    }
+
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const year = req.query.year ? parseInt(req.query.year) : undefined;
+
+    const { batchId, courseId, search = "" } = req.query;
+
+    const toObjectId = (id) => (id ? new Types.ObjectId(id) : null);
+
+    const matchStage = {};
+    if (studycenterId) matchStage.studycenterId = toObjectId(studycenterId);
+    if (batchId) matchStage.batchId = toObjectId(batchId);
+    if (courseId) matchStage.courseId = toObjectId(courseId);
+    if (year) matchStage.year = year;
+
+    const pipeline = [
+      {
+        $match: matchStage,
+      },
+      {
+        $lookup: {
+          from: "students",
+          localField: "studentId",
+          foreignField: "_id",
+          as: "student",
+        },
+      }, {
+        $unwind:{ path: "$student", preserveNullAndEmptyArrays: false }
+      },
+      {
+        $lookup: {
+          from: "batches",
+          localField: "batchId",
+          foreignField: "_id",
+          as: "batch",
+        },
+      }, {
+        $unwind:{ path: "$batch", preserveNullAndEmptyArrays: true }
+      }, {
+        $lookup: {
+          from: "courses",
+          localField: "courseId",
+          foreignField: "_id",
+          as: "course",
+        }
+      }, {
+        $unwind:{path: "$course", preserveNullAndEmptyArrays: true }
+      }, {
+        $lookup: {
+          from: "studycenters",
+          localField: "studycenterId",
+          foreignField: "_id",
+          as: "studycenter",
+        }
+      }, {
+        $unwind: { path: "$studycenter", preserveNullAndEmptyArrays: true }
+      }
+    ];
+
+    const result = await Enrollment.aggregate(pipeline);
+
+    return res.json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    return res.json({
+      message: error.message,
+      success: false,
+    });
+  }
+}
 
 export const getOneStudent = async (req, res) => {
   try {
