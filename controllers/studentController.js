@@ -365,7 +365,7 @@ export const getOneStudent = async (req, res) => {
 
 export const getStudentsForDl = async (req, res) => {
   try {
-    const studycenterId = req.user.studycenterId || req.body.studycenterId;
+    const studycenterId = req.user?.studycenterId || req.body.studycenterId;
     if (!req.user.isAdmin) {
       if (req.user.studycenterId == null) {
         return res.status(403).json({
@@ -380,7 +380,7 @@ export const getStudentsForDl = async (req, res) => {
     if (studycenterId) query.studycenterId = studycenterId;
     if (courseId) query.courseId = courseId;
     if (batchId) query.batchId = batchId;
-    if (year) query.year = year;
+    if (year) query.year = year;       
 
     const enrollments = await Enrollment.find(query)
       .populate({
@@ -423,6 +423,9 @@ export const getStudentsForDl = async (req, res) => {
           isPassed: isPassed ? "Passed" : "Not Passed",
           batchMonth: batchId?.month || "",
           courseName: courseId?.name || "",
+          ...(req.user.isAdmin && {
+            studycenterName: en.studycenterId?.name || "",
+          }),
         };
       })
       .filter(Boolean); // Remove nulls

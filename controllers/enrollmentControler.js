@@ -8,10 +8,10 @@ import enrollmentSchema from "../models/enrollmentSchema.js";
 export const checkEnrollmentByAdhar = async (req, res) => {
   try {
     const { adhaarNumber } = req.body;
+    //console.log(req.body);
 
-    const adharNumber = adhaarNumber?.adhaarNumber || adhaarNumber; // handle if directly passed
-   // console.log("Received Aadhaar number:", adharNumber);
-
+    const adharNumber = adhaarNumber?.cleanAadhaar || adhaarNumber; 
+    console.log("Adhaar Number:", adharNumber);;
     if (!adharNumber) {
       return res.status(400).json({
         data: {
@@ -42,18 +42,18 @@ export const checkEnrollmentByAdhar = async (req, res) => {
     }
 
     // 2. Check for active (isComplete: false) enrollments
-    const enrollments = await Enrollment.find({
+    const enrollments = await Enrollment.countDocuments({
       studentId: student._id,
       isComplete: false,
     });
     console.log("enrollment :",enrollments);
-    if (enrollments.length > 0) {
+    if (enrollments >= 2) {
       return res.status(200).json({
         data: {
           studentExists: true,
           enrolled: true,
           student,
-          message: "Student is already enrolled in an active course.",
+          message: "Student is already enrolled in 2 active course.",
         },
         success:true
       });
@@ -311,13 +311,12 @@ export const EnrollExcelStudents = async (req, res) => {
       const existingStudent = await Student.findOne({ adhaarNumber: adhaar });
 
       if (existingStudent) {
-        const isEnrolled = await Enrollment.findOne({
+        const activeEnrollments = await Enrollment.countDocuments({
           studentId: existingStudent._id,
           isCompleted: false,
         });
-        console.log(isEnrolled)
 
-      if (isEnrolled && !isEnrolled.isCompleted) {
+      if (activeEnrollments >= 2) {
         unavailableStudents.push({
           ...entry,
           studentId: existingStudent._id,
@@ -427,7 +426,7 @@ export const bulkEnrollStudents = async (req, res) => {
       const newStudent = await Student.create({
         name: student.name,
         age: student.age,
-        dateOfBirth: student.dateOfBirth,
+        dateOfBirth: student.dateOfBirth,//new Date()
         gender: student.gender,
         phoneNumber: student.phoneNumber,
         place: student.place,
