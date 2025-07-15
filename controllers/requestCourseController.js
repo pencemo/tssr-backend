@@ -1,0 +1,169 @@
+import Course from "../models/courseSchema.js";
+import RequestCourse from "../models/requestCourseSchema.js";
+import StudyCenter from "../models/studyCenterSchema.js";
+
+export const requestCourse = async (req, res) => {
+  try {
+    const { courseId } = req.body;
+    const studycenterId = req.user.studycenterId;
+
+    if (!courseId) {
+      return res.status(400).json({
+        success: false,
+        message: "Course ID is required",
+      });
+    }
+
+    // Check if the course has already been requested by this study center
+    const existingRequest = await RequestCourse.findOne({
+      courseId,
+      studycenterId,
+    });
+
+    if (existingRequest) {
+      return res.status(400).json({
+        success: false,
+        message: "This course has already been requested by your study center",
+      });
+      }
+      
+    const newRequest = await RequestCourse.create({
+      courseId,
+      studycenterId,
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: "Course request submitted",
+      data: newRequest,
+    });
+  } catch (error) {
+    console.error("Error requesting course:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error. Could not process course request.",
+    });
+  }
+};
+
+export const getRequestedCourses = async (req, res) => {
+  try {
+    const studycenterId = req.user.studycenterId;
+    const requestedCourses = await RequestCourse.find({
+      studycenterId,
+    }).populate("courseId", "name");
+
+    return res.status(200).json({
+      success: true,
+      message: "Requested courses retrieved successfully",
+      data: requestedCourses,
+    });
+  } catch (error) {
+    console.error("Error retrieving requested courses:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error. Could not retrieve requested courses.",
+    });
+  }
+};
+
+export const changeStatusOfRequestedCourse = async (req, res) => {
+  try {
+    const { requestId, status } = req.body;
+
+    if (!requestId || !status) {
+      return res.status(400).json({
+        success: false,
+        message: "Request ID and status are required",
+      });
+    }
+
+    const updatedRequest = await RequestCourse.findOneAndUpdate(
+      { _id: requestId },
+      { status },
+      { new: true }
+    );
+
+    if (!updatedRequest) {
+      return res.status(404).json({
+        success: false,
+        message: "Request not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Request status updated successfully",
+      data: updatedRequest,
+    });
+  } catch (error) {
+    console.error("Error updating request status:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error. Could not update request status.",
+    });
+  }
+};
+
+export const getRequestedCoursesByAdmin = async (req, res) => {
+  try {
+    const requestedCourses = await RequestCourse.find()
+      .populate("courseId", "name")
+      .populate("studycenterId", "name");
+
+    return res.status(200).json({
+      success: true,
+      message: "Requested courses retrieved successfully",
+      data: requestedCourses,
+    });
+  } catch (error) {
+    console.error("Error retrieving requested courses:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error. Could not retrieve requested courses.",
+    });
+  }
+};
+
+export const getAllNotBookedCourses = async (req, res) => {
+  try {
+    const studycenterId = req.user.studycenterId;
+
+    if (!studycenterId) {
+      return res.status(400).json({
+        success: false,
+        message: "Study center ID is required.",
+      });
+    }
+
+    const studycenter = await StudyCenter.findById(studycenterId)
+      .select("courses")
+      .lean();
+
+    if (!studycenter) {
+      return res.status(404).json({
+        success: false,
+        message: "Study center not found.",
+      });
+    }
+
+    const assignedCourseIds = studycenter.courses || [];
+
+    // Use $nin to fetch only unassigned courses in a single query
+    const unassignedCourses = await Course.find({
+      _id: { $nin: assignedCourseIds },
+    }).lean();
+
+    return res.status(200).json({
+      success: true,
+      message: "Unassigned (not booked) courses fetched successfully.",
+      data: unassignedCourses,
+    });
+  } catch (error) {
+    console.error("Error fetching unassigned courses:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error. Could not fetch unassigned courses.",
+    });
+  }
+};

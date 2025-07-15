@@ -5,10 +5,12 @@ import StudyCenter from "../models/studyCenterSchema.js";
 import { getLast4Digits } from "../utils/last4Digit.js";
 import Batch from "../models/batchSchema.js";
 import enrollmentSchema from "../models/enrollmentSchema.js";
+import { excelSerialToDate } from "../utils/excelDateTojsonDate.js";
 export const checkEnrollmentByAdhar = async (req, res) => {
   try {
+   // console.log(req.body);
     const { adhaarNumber } = req.body;
-    //console.log(req.body);
+    
 
     const adharNumber = adhaarNumber?.cleanAadhaar || adhaarNumber; 
     console.log("Adhaar Number:", adharNumber);;
@@ -26,7 +28,7 @@ export const checkEnrollmentByAdhar = async (req, res) => {
 
     // 1. Find the student by Aadhaar number
     const student = await Student.findOne({ adhaarNumber: adharNumber });
-    //console.log("Found student:", student);
+    console.log("Found student:", student);
 
     if (!student) {
       // Phase 1: Student not found
@@ -44,7 +46,7 @@ export const checkEnrollmentByAdhar = async (req, res) => {
     // 2. Check for active (isComplete: false) enrollments
     const enrollments = await Enrollment.countDocuments({
       studentId: student._id,
-      isComplete: false,
+      isCompleted: false,
     });
     console.log("enrollment :",enrollments);
     if (enrollments >= 2) {
@@ -274,11 +276,103 @@ export const createStudentWithEnrollment = async (req, res) => {
 };
 
 // Excel Uploading procedure ...
+// export const EnrollExcelStudents = async (req, res) => {
+//   try {
+//     const data = req.body;
+//     const REQUIRED_FIELDS = [
+//       "name",
+//       "age",
+//       "dateOfBirth",
+//       "gender",
+//       "phoneNumber",
+//       "place",
+//       "district",
+//       "state",
+//       "pincode",
+//       "email",
+//       "adhaarNumber",
+//       "parentName",
+//       "qualification",
+//     ];
+
+//     const newStudents = [];
+//     const pendingEnrollmentStudents = [];
+//     const unavailableStudents = [];
+
+//     for (const entry of data) {
+//       const adhaar = entry.adhaarNumber?.toString().trim();
+
+//       if (!adhaar || adhaar.length !== 12) {
+//         unavailableStudents.push({
+//           ...entry,
+//           reason: "check Adhaar Number",
+//         });
+//         continue;
+//       }
+
+//       const existingStudent = await Student.findOne({ adhaarNumber: adhaar });
+
+//       if (existingStudent) {
+//         const activeEnrollments = await Enrollment.countDocuments({
+//           studentId: existingStudent._id,
+//           isCompleted: false,
+//         });
+
+//       if (activeEnrollments >= 2) {
+//         unavailableStudents.push({
+//           ...entry,
+//           studentId: existingStudent._id,
+//           reason: "Already enrolled",
+//         });
+//       } else {
+//         // Use existing student data from DB, no required field check
+//         pendingEnrollmentStudents.push(existingStudent);
+//       }
+
+        
+//       } else {
+//         // For new student only, check required fields
+//         const missingFields = REQUIRED_FIELDS.filter(
+//           (field) => !entry[field] && entry[field] !== 0
+//         );
+
+//         if (missingFields.length > 0) {
+//           unavailableStudents.push({
+//             ...entry,
+//             reason: "Missing required fields",
+//             missingFields,
+//           });
+
+//         } else {
+
+//           newStudents.push(entry);
+//         }
+//       }
+//     }
+//     console.log("Available students:", newStudents);
+//     console.log("Pending enrollment students:", pendingEnrollmentStudents);
+//     console.log("Unavailable students:", unavailableStudents);
+//     return res.status(200).json({
+//       newStudents,
+//       pendingEnrollmentStudents,
+//       unavailableStudents,
+//       success: true,
+//     });
+//   } catch (err) {
+//     console.error("Import error:", err);
+//     return res.status(500).json({
+//       error: "Failed to process student enrollment data.",
+//       success: false,
+//     });
+//   }
+// };
+
 export const EnrollExcelStudents = async (req, res) => {
   try {
     const data = req.body;
+
     const REQUIRED_FIELDS = [
-      "name",   
+      "name",
       "age",
       "dateOfBirth",
       "gender",
@@ -297,17 +391,32 @@ export const EnrollExcelStudents = async (req, res) => {
     const pendingEnrollmentStudents = [];
     const unavailableStudents = [];
 
+    const aadhaarSeen = new Set();
+
     for (const entry of data) {
       const adhaar = entry.adhaarNumber?.toString().trim();
 
-      if (!adhaar) {
+      if (aadhaarSeen.has(adhaar)) {
         unavailableStudents.push({
           ...entry,
-          reason: "Missing Aadhaar number",
+          reason: "Duplicated Aadhaar number Founded",
+        });
+       continue;
+      } else {
+        aadhaarSeen.add(adhaar);
+        console.log("Aadhaar seen:", aadhaarSeen);
+      }
+
+      // 1. Aadhaar check
+      if (!adhaar || adhaar.length !== 12) {
+        unavailableStudents.push({
+          ...entry,
+          reason: "Invalid Aadhaar number",
         });
         continue;
       }
 
+      // 2. Existing student check
       const existingStudent = await Student.findOne({ adhaarNumber: adhaar });
 
       if (existingStudent) {
@@ -316,36 +425,82 @@ export const EnrollExcelStudents = async (req, res) => {
           isCompleted: false,
         });
 
-      if (activeEnrollments >= 2) {
-        unavailableStudents.push({
-          ...entry,
-          studentId: existingStudent._id,
-          reason: "Already enrolled",
-        });
-      } else {
-        // Use existing student data from DB, no required field check
-        pendingEnrollmentStudents.push(existingStudent);
-      }
-
-        
-      } else {
-        // For new student only, check required fields
-        const missingFields = REQUIRED_FIELDS.filter(
-          (field) => !entry[field] && entry[field] !== 0
-        );
-
-        if (missingFields.length > 0) {
+        if (activeEnrollments >= 2) {
           unavailableStudents.push({
             ...entry,
-            reason: "Missing required fields",
-            missingFields,
+            studentId: existingStudent._id,
+            reason: "Already enrolled in 2 active courses",
           });
         } else {
-          newStudents.push(entry);
+          pendingEnrollmentStudents.push(existingStudent);
+        }
+        continue;
+      }
+
+      // 3. Required fields
+      for (const field of REQUIRED_FIELDS) {
+        if (!entry[field] && entry[field] !== 0) {
+          unavailableStudents.push({
+            ...entry,
+            reason: `Missing field: ${field}`,
+          });
+          continue;
         }
       }
-    }
+  
+      
+      const dob = excelSerialToDate(entry.dateOfBirth);
+      const dobISO = new Date(dob).toISOString(); 
 
+      // 4. DOB format (dd-mm-yyyy)
+      if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(dobISO)) {
+        unavailableStudents.push({
+          ...entry,
+          reason: "DOB must be a valid date (yyyy-mm-dd format)",
+        });
+        continue;
+      }
+
+      // 5. Phone number must be >= 10 digits
+      if (entry.phoneNumber?.toString().length < 10) {
+        unavailableStudents.push({
+          ...entry,
+          reason: "Phone number must be at least 10 digits",
+        });
+        continue;
+      }
+
+      // 6. Age must be a number
+      if (isNaN(Number(entry.age))) {
+        unavailableStudents.push({
+          ...entry,
+          reason: "Age must be a valid number",
+        });
+        continue;
+      }
+
+      // 7. Gender validation
+        const gender = String(entry.gender || "").toLowerCase();
+        if (!["male", "female", "others"].includes(gender)) {
+          unavailableStudents.push({
+            ...entry,
+            reason: "Gender must be one of: male, female, others",
+          });
+          continue;
+        }
+
+
+      // 8. Email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(entry.email)) {
+        unavailableStudents.push({ ...entry, reason: "Invalid email format" });
+        continue;
+      }
+
+      // ✅ Passed all validations
+      newStudents.push(entry);
+    }
+    console.log(unavailableStudents);
     return res.status(200).json({
       newStudents,
       pendingEnrollmentStudents,
@@ -360,6 +515,10 @@ export const EnrollExcelStudents = async (req, res) => {
     });
   }
 };
+
+
+
+
 
 // Enrolling Excel students with Enrollment 
 export const bulkEnrollStudents = async (req, res) => {
