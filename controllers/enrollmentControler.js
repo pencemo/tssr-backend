@@ -55,7 +55,7 @@ export const checkEnrollmentByAdhar = async (req, res) => {
           student,
           message: "Student is already enrolled in 2 active course.",
         },
-        success:true
+        success:false
       });
     } else {
       return res.status(200).json({
