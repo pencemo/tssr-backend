@@ -52,6 +52,11 @@ const ExamScheduleSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+ExamScheduleSchema.index({ "examDate.to": 1 });
+ExamScheduleSchema.index({ batches: 1 });
+ExamScheduleSchema.index({ "examDate.to": 1, batches: 1 });
+
+
 const ExamSchedule = mongoose.model("ExamSchedule", ExamScheduleSchema);
 
 export default ExamSchedule;

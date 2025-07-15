@@ -44,4 +44,11 @@ const batchSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+batchSchema.index({ month: 1 });
+batchSchema.index({ courseId: 1 });
+batchSchema.index({ admissionYear: 1 }); 
+
+
+
+
 export default mongoose.model("Batch", batchSchema);

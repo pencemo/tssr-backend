@@ -54,7 +54,7 @@ export const addStudyCenter = async (req, res) => {
       centerHead,
       email,
       authEmail,
-      phoneNumber,
+      // phoneNumber,
       password,
     };
 
@@ -171,7 +171,7 @@ export const getVerifiedActiveStudyCenters = async (req, res) => {
 
     const studyCenters = await StudyCenter.find(queryCondition)
       .populate("courses")
-      .sort({ createdAt: -1 }) // ✅ Sort by oldest first
+      .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
 

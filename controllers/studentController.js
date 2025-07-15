@@ -172,7 +172,7 @@ export const getStudyCenterStudents = async (req, res) => {
           as: "student",
         },
       },
-       { $unwind: { path: "$student", preserveNullAndEmptyArrays: false } },
+      { $unwind: { path: "$student", preserveNullAndEmptyArrays: false } },
 
       // Lookup batch details
       {
@@ -183,7 +183,7 @@ export const getStudyCenterStudents = async (req, res) => {
           as: "batch",
         },
       },
-       { $unwind: { path: "$batch", preserveNullAndEmptyArrays: true } },
+      { $unwind: { path: "$batch", preserveNullAndEmptyArrays: true } },
 
       // Lookup course details
       {
@@ -194,7 +194,7 @@ export const getStudyCenterStudents = async (req, res) => {
           as: "course",
         },
       },
-       { $unwind: { path: "$course", preserveNullAndEmptyArrays: true } },
+      { $unwind: { path: "$course", preserveNullAndEmptyArrays: true } },
 
       // Lookup studycenter details
       {
@@ -205,7 +205,7 @@ export const getStudyCenterStudents = async (req, res) => {
           as: "studycenter",
         },
       },
-       { $unwind: { path: "$studycenter", preserveNullAndEmptyArrays: true } },
+      { $unwind: { path: "$studycenter", preserveNullAndEmptyArrays: true } },
 
       // Apply search filter after all lookups
       ...(search
@@ -222,23 +222,24 @@ export const getStudyCenterStudents = async (req, res) => {
           ]
         : []),
 
-     
-      { $sort: { "student.createdAt": -1 } },
 
       // Group by student only when not searching
       ...(!search
         ? [
             {
               $group: {
-                _id: "$student._id", // Group by student ID
-                doc: { $first: "$$ROOT" }, // Keep only the first (newest) enrollment
+                _id: "$student._id", 
+                doc: { $first: "$$ROOT" }, 
               },
             },
             {
-              $replaceRoot: { newRoot: "$doc" }, // Restore the document structure
+              $replaceRoot: { newRoot: "$doc" }, 
             },
           ]
         : []),
+        // After $replaceRoot:
+  { $sort: { "student.registrationNumber": -1 } },
+
 
       // Project final fields
       {
@@ -441,6 +442,7 @@ export const getStudentsForDl = async (req, res) => {
     return res.status(500).json({ success: false, message: "Server Error" });
   }
 };
+
 export const getAllStudentsDownloadForAdmin = async (req, res) => {
   try {
     const { courseId, batchId, year, fields } = req.body || {};

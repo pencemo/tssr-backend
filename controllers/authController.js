@@ -352,7 +352,6 @@ export const verifyOtp = async (req, res) => {
   }
 };
 
-
 export const createNewPassword = async (req, res) => {
   const { email, newPassword } = req.body;
 

@@ -4,6 +4,7 @@ import { getDateOnlyFromDate } from "../utils/dateUtils.js";
 import StudyCenter from "../models/studyCenterSchema.js";
 import { getLast4Digits } from "../utils/last4Digit.js";
 import Batch from "../models/batchSchema.js";
+import enrollmentSchema from "../models/enrollmentSchema.js";
 export const checkEnrollmentByAdhar = async (req, res) => {
   try {
     const { adhaarNumber } = req.body;
@@ -83,133 +84,82 @@ export const checkEnrollmentByAdhar = async (req, res) => {
 };
 
 
-export const createStudent = async (req, res) => {
-  try {
-    const studyCenterId = req.user.studycenterId; // From authentication middleware
-    const data = req.body;
-    const {
-      name,
-      age,
-      dateOfBirth,
-      gender,
-      phoneNumber,
-      state,
-      district,
-      place,
-      pincode,
-      email,
-      adhaarNumber,
-      dateOfAdmission,
-      parentName,
-      qualification,
-    } = data;
+// export const createStudent = async (req, res) => {
+//   try {
+//     const studyCenterId = req.user.studycenterId; // From authentication middleware
+//     const data = req.body;
+//     const {
+//       name,
+//       age,
+//       dateOfBirth,
+//       gender,
+//       phoneNumber,
+//       state,
+//       district,
+//       place,
+//       pincode,
+//       email,
+//       adhaarNumber,
+//       dateOfAdmission,
+//       parentName,
+//       qualification,
+//     } = data;
 
-    const profileImageFile = req.files?.find((file) => file.fieldname === "profileImage");
-    const sslcFile = req.files?.find((file) => file.fieldname === "sslc");
+//     const profileImageFile = req.files?.find((file) => file.fieldname === "profileImage");
+//     const sslcFile = req.files?.find((file) => file.fieldname === "sslc");
 
-    const profileImage = profileImageFile?.path || "";
-    const sslc = sslcFile?.path || "";
+//     const profileImage = profileImageFile?.path || "";
+//     const sslc = sslcFile?.path || "";
     
 
-    const newStudent = new Student({
-      name,
-      age,
-      dateOfBirth,
-      gender,
-      phoneNumber,
-      place,
-      state,
-      district,
-      pincode,
-      email,
-      adhaarNumber,
-      studyCenterId,
-      dateOfAdmission,
-      parentName,
-      registrationNumber: "123456",
-      qualification,
-      sslc,
-      profileImage,
-    });
+//     const newStudent = new Student({
+//       name,
+//       age,
+//       dateOfBirth,
+//       gender,
+//       phoneNumber,
+//       place,
+//       state,
+//       district,
+//       pincode,
+//       email,
+//       adhaarNumber,
+//       studyCenterId,
+//       dateOfAdmission,
+//       parentName,
+//       registrationNumber: "123456",
+//       qualification,
+//       sslc,
+//       profileImage,
+//     });
     
-    console.log("New student object:", newStudent);
-    await newStudent.save();
+//     console.log("New student object:", newStudent);
+//     await newStudent.save();
 
-    res.status(201).json({
-      message: "Student created successfully",
-      student: newStudent,
-      success: true,
-    });
-  } catch (error) {
-    console.error("Error creating student:", error);
-    res.status(400).json({
-      message: "Failed to create student",
-      error: error.message,
-      success: false,
-    });
-  }
-};
+//     res.status(201).json({
+//       message: "Student created successfully",
+//       student: newStudent,
+//       success: true,
+//     });
+//   } catch (error) {
+//     console.error("Error creating student:", error);
+//     res.status(400).json({
+//       message: "Failed to create student",
+//       error: error.message,
+//       success: false,
+//     });
+//   }
+// };
 
-export const createEnrollment = async (req, res) => {
-  try {
-    const {data} = req.body;
-    const { studentId, courseId, batchId, year } = data;
-    const studycenterId = req.user.studycenterId;
 
-    if (!studentId || !courseId || !batchId || !year) {
-      return res
-        .status(400)
-        .json({ message: "All required fields must be provided" , success: false});
-    }
 
-    // Prevent duplicate enrollments
-    const existing = await Enrollment.findOne({
-      studentId,
-      courseId,
-      batchId,
-      year,
-    });
-
-    if (existing) {
-      return res.status(409).json({
-        message:
-          "Student is already enrolled in this course and batch for the given year",
-        success: false,
-      });
-    }
-
-    // Manually set default status fields from the backend
-    const newEnrollment = new Enrollment({
-      studentId,
-      courseId,
-      batchId,
-      year,
-      studycenterId,
-      enrolledDate: new Date(), // explicitly set current date
-      isCompleted: false,
-      isPassed: false,
-      isCertificateIssued: false,
-    });
-
-    await newEnrollment.save();
-
-    res.status(201).json({
-      message: "Enrollment created successfully",
-      enrollment: newEnrollment,
-      success: true,
-    });
-  } catch (error) {
-    console.error("Enrollment creation error:", error);
-    res.status(500).json({ message: "Internal Server Error" , success: false});
-  }
-};
-
+// for Single student
 export const createStudentWithEnrollment = async (req, res) => {
   try {
     const studyCenterId = req.user.studycenterId;
     const studentData = req.body.student;
     console.log("req.body:", req.body); 
-    const enrollmentData = req.body.enrollmentData;
+    const course = req.body.course;
 
     const {
       name,
@@ -230,7 +180,7 @@ export const createStudentWithEnrollment = async (req, res) => {
       profileImage,
     } = studentData;
 
-    const { courseId, batchId } = enrollmentData;
+    const { courseId, batchId } = course;
 
     if (!adhaarNumber || !courseId || !batchId ) {
       return res.status(400).json({
@@ -323,7 +273,7 @@ export const createStudentWithEnrollment = async (req, res) => {
   }
 };
 
-// excel Uploading for enrollment
+// Excel Uploading procedure ...
 export const EnrollExcelStudents = async (req, res) => {
   try {
     const data = req.body;
@@ -341,7 +291,6 @@ export const EnrollExcelStudents = async (req, res) => {
       "adhaarNumber",
       "parentName",
       "qualification",
-      "year"
     ];
 
     const newStudents = [];
@@ -366,17 +315,20 @@ export const EnrollExcelStudents = async (req, res) => {
           studentId: existingStudent._id,
           isCompleted: false,
         });
+        console.log(isEnrolled)
 
-        if (isEnrolled) {
-          unavailableStudents.push({
-            ...entry,
-            studentId: existingStudent._id,
-            reason: "Already enrolled",
-          });
-        } else {
-          // Use existing student data from DB, no required field check
-          pendingEnrollmentStudents.push(existingStudent);
-        }
+      if (isEnrolled && !isEnrolled.isCompleted) {
+        unavailableStudents.push({
+          ...entry,
+          studentId: existingStudent._id,
+          reason: "Already enrolled",
+        });
+      } else {
+        // Use existing student data from DB, no required field check
+        pendingEnrollmentStudents.push(existingStudent);
+      }
+
+        
       } else {
         // For new student only, check required fields
         const missingFields = REQUIRED_FIELDS.filter(
@@ -410,7 +362,7 @@ export const EnrollExcelStudents = async (req, res) => {
   }
 };
 
-//Enroll bulk students
+// Enrolling Excel students with Enrollment 
 export const bulkEnrollStudents = async (req, res) => {
   const date = new Date();
   const today = getDateOnlyFromDate(date);
@@ -527,6 +479,70 @@ export const bulkEnrollStudents = async (req, res) => {
 
 
 
+
+export const updateStudentById = async (req, res) => {
+  try {
+    const { id, ...restData } = req.body.data; // Accessing from req.body.data
+    console.log("Incoming Data:", req.body.data);
+    console.log("id:",id);
+
+    const updatedData = {
+      name: restData.name,
+      age: restData.age,
+      gender: restData.gender,
+      dateOfBirth: restData.dateOfBirth
+        ? new Date(restData.dateOfBirth)
+        : undefined,
+      phoneNumber: restData.phoneNumber,
+      email: restData.email,
+      place: restData.place,
+      state: restData.state,
+      district: restData.district,
+      pincode: restData.pincode,
+      parentName: restData.parentName,
+      qualification: restData.qualification,
+      adhaarNumber: restData.adhaarNumber,
+      dateOfAdmission: restData.dateOfAdmission
+        ? new Date(restData.dateOfAdmission)
+        : undefined,
+      profileImage: restData.profileImage,
+      sslc: restData.sslc,
+    };
+
+    // Remove keys with undefined values
+    Object.keys(updatedData).forEach((key) => {
+      if (updatedData[key] === undefined) delete updatedData[key];
+    });
+
+    const enrolledStudent = await enrollmentSchema.findById(id);
+    console.log("Enrolled Student:", enrolledStudent);
+
+    if (!enrolledStudent) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Enrollment not found" });
+    }
+
+    const updatedStudent = await Student.findByIdAndUpdate(
+      enrolledStudent.studentId,
+      updatedData,
+      { new: true }
+    );
+
+    if (!updatedStudent) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Student not found" });
+    }
+
+    return res.status(200).json({ success: true, student: updatedStudent });
+  } catch (error) {
+    console.error("Error updating student:", error);
+    return res
+      .status(500)
+      .json({ success: false, message: "Internal Server Error" });
+  }
+};
 
 
 

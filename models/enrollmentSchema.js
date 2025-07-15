@@ -49,4 +49,14 @@ const enrollmentSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// enrollmentSchema.index({ studycenterId: 1 });
+// enrollmentSchema.index({ year: 1 });
+// enrollmentSchema.index({ courseId: 1 });
+// enrollmentSchema.index({ batchId: 1 });
+// enrollmentSchema.index({ createdAt: 1 });
+// enrollmentSchema.index({ studentId: 1 });
+// enrollmentSchema.index({ studycenterId: 1, year: 1 });
+
 export default mongoose.model("Enrollment", enrollmentSchema);
+
+

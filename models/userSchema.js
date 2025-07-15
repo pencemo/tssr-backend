@@ -47,8 +47,7 @@ const userSchema = new Schema(
     },
     phoneNumber: {
       type: String,
-      required: true,
-      match: [/^\+?[1-9]\d{1,14}$/, "Please provide a valid phone number"],
+      // match: [/^\+?[1-9]\d{1,14}$/, "Please provide a valid phone number"],
     },
     isActive: {
       type: Boolean,

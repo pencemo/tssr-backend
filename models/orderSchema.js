@@ -25,6 +25,11 @@ const orderSchema = new Schema({
 }
 );
 
+orderSchema.index({ buyerId: 1, createdAt: -1 });
+orderSchema.index({ status: 1, createdAt: -1 });
+orderSchema.index({ createdAt: -1 }); 
+
+
 const Result = mongoose.model("Order", orderSchema);
 
 export default Result;

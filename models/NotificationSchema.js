@@ -19,4 +19,9 @@ const NotificationSchema = new mongoose.Schema({
   timestamps: true,
 });
 
+NotificationSchema.index({ receiverIsAdmin: 1, createdAt: -1 }); // for admin
+NotificationSchema.index({ receiverIsAdmin: 1, receiverId: 1, createdAt: -1 }); // for non-admin
+
+
+
 export default mongoose.model("Notification", NotificationSchema);
