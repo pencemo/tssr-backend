@@ -278,5 +278,37 @@ export const getScheduledExamBatchesOfStudyCenter = async (req, res) => {
   }
 };
 
+export const deleteExamSchedule = async (req, res) => {
+  try {
+    const { examScheduleId } = req.body;
+    console.log("Exam Schedule ID:", examScheduleId);
+
+    if (!examScheduleId) {
+      return res.status(400).json({
+        success: false,
+        message: "Exam schedule ID is required",
+      });
+    }
+
+    const examSchedule = await ExamSchedule.findByIdAndDelete(examScheduleId);
+
+    if (!examSchedule) {
+      return res.status(404).json({
+        success: false,
+        message: "Exam schedule not found",
+      });
+    }
+    return res.status(200).json({
+      success: true,
+      message: "Exam schedule deleted successfully",
+    })
+  }
+  catch (err) {
+    return res.status(500).json({
+      success: false,
+      message: "Server error while deleting exam schedule",
+    });
+  }
+}
 
 

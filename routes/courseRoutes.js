@@ -12,7 +12,7 @@ import { getAdmissionOpenBatchesByStudyCenter } from "../controllers/batchContro
 const router = express.Router();
 
 // Course Routes
-router.get("/getAllCourses", getAllCourses);
+router.get("/getAllCourses",isAuthenticated ,getAllCourses);
 
 router.get("/getcoursebyid/:id", getCourseById);
 router.post("/create", createCourse);

@@ -5,6 +5,7 @@ export const sendNotification = async ({
   description,
   receiverId,
   category,
+  receiverIsAdmin=false
 }) => {
   try {
     const newNotification = new NotificationSchema({
@@ -12,7 +13,7 @@ export const sendNotification = async ({
       description,
       receiverId,
       category,
-      receiverIsAdmin: false,
+      receiverIsAdmin,
     });
     const saved = await newNotification.save();
     return saved;

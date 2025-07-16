@@ -1,7 +1,7 @@
 import Course from "../models/courseSchema.js";
 import RequestCourse from "../models/requestCourseSchema.js";
 import StudyCenter from "../models/studyCenterSchema.js";
-
+import {sendNotification} from '../utils/notification.js'
 export const requestCourse = async (req, res) => {
   try {
     const { courseId } = req.body;
@@ -31,7 +31,15 @@ export const requestCourse = async (req, res) => {
       courseId,
       studycenterId,
     });
-
+    
+      const studycenter = await StudyCenter.findById(studycenterId).select("name");
+      await sendNotification({
+        title: "New Request Received",
+        description: `A new request has been submitted by ${studycenter.name}.`,
+        receiverId: null, 
+        category: "New Request",
+        receiverIsAdmin: true,
+      });
     return res.status(201).json({
       success: true,
       message: "Course request submitted",
@@ -71,6 +79,16 @@ export const changeStatusOfRequestedCourse = async (req, res) => {
   try {
     const { requestId, status } = req.body;
 
+   const isInclude = ["approved", "rejected"].includes(status);
+    console.log(isInclude);
+
+    if (!isInclude) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid status. Status must be 'approved' or 'rejected'",
+      })
+    }
+
     if (!requestId || !status) {
       return res.status(400).json({
         success: false,
@@ -78,11 +96,12 @@ export const changeStatusOfRequestedCourse = async (req, res) => {
       });
     }
 
+      
     const updatedRequest = await RequestCourse.findOneAndUpdate(
       { _id: requestId },
       { status },
       { new: true }
-    );
+    ).populate("courseId","name");
 
     if (!updatedRequest) {
       return res.status(404).json({
@@ -91,6 +110,19 @@ export const changeStatusOfRequestedCourse = async (req, res) => {
       });
     }
 
+    if (status === "approved") {
+      await StudyCenter.findByIdAndUpdate(updatedRequest.studycenterId, {
+        $addToSet: { courses: updatedRequest.courseId._id },
+      });
+    }
+
+      await sendNotification({
+        title: `Request ${status}`,
+        description: `Your request for "${updatedRequest?.courseId?.name}" has been ${status}. Please check the details or contact the admin if needed.`,
+        category: "Request Update",
+        receiverId: updatedRequest.studycenterId,
+      });
+    
     return res.status(200).json({
       success: true,
       message: "Request status updated successfully",

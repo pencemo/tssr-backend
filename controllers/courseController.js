@@ -3,16 +3,56 @@ import Batch from "../models/batchSchema.js";
 import mongoose from "mongoose";
 import StudyCenter from "../models/studyCenterSchema.js";
 // Get all courses
+
+
 export const getAllCourses = async (req, res) => {
   try {
-    const courses = await Course.find({ isActive: true });
-    res.status(200).json({
+    const isAdmin = req.user.isAdmin;
+    const studyCenterId = req.user.studycenterId;
+
+    let courses = [];
+
+    if (isAdmin) {
+      // Admin: fetch all active courses
+      courses = await Course.find({ isActive: true });
+    } else {
+      if (!studyCenterId) {
+        return res.status(400).json({
+          success: false,
+          message: "Study center ID is required",
+        });
+      }
+
+      const studyCenter =
+        await StudyCenter.findById(studyCenterId).select("courses");
+
+      if (
+        !studyCenter ||
+        !studyCenter.courses ||
+        studyCenter.courses.length === 0
+      ) {
+        return res.status(200).json({
+          success: true,
+          message: "No courses assigned to this study center",
+          data: [],
+        });
+      }
+
+      // Fetch the actual course documents using IDs
+      courses = await Course.find({
+        _id: { $in: studyCenter.courses },
+        isActive: true,
+      });
+    }
+
+    return res.status(200).json({
       success: true,
-      message: "Fetched active courses",
+      message: "Courses fetched successfully",
       data: courses,
     });
   } catch (error) {
-    res.status(500).json({
+    console.error("Error fetching courses:", error);
+    return res.status(500).json({
       success: false,
       message: "Failed to fetch courses",
       error: error.message,
