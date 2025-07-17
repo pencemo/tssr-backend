@@ -43,7 +43,7 @@ const studentSchema = new Schema(
       type: String,
       unique: true,
     },
-    studyCenterId: {
+    studyCenterId: {  
       type: mongoose.Schema.Types.ObjectId,
       ref: "Studycenter",
       required: true,

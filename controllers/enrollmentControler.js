@@ -2,36 +2,31 @@ import Student from "../models/studentSchema.js";
 import Enrollment from "../models/enrollmentSchema.js";
 import { getDateOnlyFromDate } from "../utils/dateUtils.js";
 import StudyCenter from "../models/studyCenterSchema.js";
-import { getLast4Digits } from "../utils/last4Digit.js";
 import Batch from "../models/batchSchema.js";
 import enrollmentSchema from "../models/enrollmentSchema.js";
 import { excelSerialToDate } from "../utils/excelDateTojsonDate.js";
+import ApprovalWaiting from '../models/approvalWaitingSchema.js'
+
 export const checkEnrollmentByAdhar = async (req, res) => {
   try {
-   // console.log(req.body);
-    const { adhaarNumber } = req.body;
-    
+    const { adhaarNumber, courseId, batchId } = req.body;
 
-    const adharNumber = adhaarNumber?.cleanAadhaar || adhaarNumber; 
-    console.log("Adhaar Number:", adharNumber);;
-    if (!adharNumber) {
+    if (!adhaarNumber) {
       return res.status(400).json({
         data: {
           studentExists: false,
           enrolled: false,
           student: null,
-          message: "Aadhaar number is required",
+          message: "Aadhaar number is required.",
         },
-        success:false
+        success: false,
       });
     }
 
-    // 1. Find the student by Aadhaar number
-    const student = await Student.findOne({ adhaarNumber: adharNumber });
-    console.log("Found student:", student);
+    
+    const student = await Student.findOne({ adhaarNumber: adhaarNumber });
 
     if (!student) {
-      // Phase 1: Student not found
       return res.status(200).json({
         data: {
           studentExists: false,
@@ -39,38 +34,78 @@ export const checkEnrollmentByAdhar = async (req, res) => {
           student: null,
           message: "Student with this Aadhaar number does not exist.",
         },
-        success:true
+        success: true,
       });
     }
 
-    // 2. Check for active (isComplete: false) enrollments
+    // Step 2: Count active enrollments
     const enrollments = await Enrollment.countDocuments({
       studentId: student._id,
       isCompleted: false,
     });
-    console.log("enrollment :",enrollments);
-    if (enrollments >= 2) {
+    console.log("enrollment :", enrollments);
+
+    // Step 3: Count pending approvals
+    const pendingApprovals = await ApprovalWaiting.countDocuments({
+      studentId: student._id,
+      approvalStatus: "pending",
+    });
+    console.log("pending approvals :", pendingApprovals);
+
+    const totalCourses = enrollments + pendingApprovals;
+    if (totalCourses >= 2) {
       return res.status(200).json({
         data: {
           studentExists: true,
           enrolled: true,
           student,
-          message: "Student is already enrolled in 2 active course.",
+          message:
+            "Student is already enrolled or applied for 2 active courses.",
         },
-        success:false
-      });
-    } else {
-      return res.status(200).json({
-        data: {
-          studentExists: true,
-          enrolled: false,
-          student,
-          message: "Proceed with new Enrollment .",
-        },
-        success:true
+        success: false,
       });
     }
-    
+
+    // Optional: courseId & batchId should be passed to check duplicates
+    if (courseId && batchId) {
+      const alreadyEnrolled = await Enrollment.findOne({
+        studentId: student._id,
+        courseId,
+        batchId,
+        isCompleted: false,
+      });
+
+      const alreadyApplied = await ApprovalWaiting.findOne({
+        studentId: student._id,
+        courseId,
+        batchId,
+        approvalStatus: "pending",
+      });
+      // console.log("alreadyEnrolled :", alreadyEnrolled);
+      // console.log("alreadyApplied :", alreadyApplied);
+      if (alreadyEnrolled || alreadyApplied) {
+        return res.status(200).json({
+          data: {
+            studentExists: true,
+            enrolled: true,
+            student,
+            message:
+              "Student has already enrolled or applied for this course in the selected batch.",
+          },
+          success: false,
+        });
+      }
+    }
+
+    return res.status(200).json({
+      data: {
+        studentExists: true,
+        enrolled: false,
+        student,
+        message: "Proceed with new Enrollment.",
+      },
+      success: true,
+    });
   } catch (error) {
     console.error("Error checking enrollment:", error);
     return res.status(500).json({
@@ -80,80 +115,10 @@ export const checkEnrollmentByAdhar = async (req, res) => {
         student: null,
         message: "Internal server error",
       },
-      success:false
+      success: false,
     });
   }
 };
-
-
-// export const createStudent = async (req, res) => {
-//   try {
-//     const studyCenterId = req.user.studycenterId; // From authentication middleware
-//     const data = req.body;
-//     const {
-//       name,
-//       age,
-//       dateOfBirth,
-//       gender,
-//       phoneNumber,
-//       state,
-//       district,
-//       place,
-//       pincode,
-//       email,
-//       adhaarNumber,
-//       dateOfAdmission,
-//       parentName,
-//       qualification,
-//     } = data;
-
-//     const profileImageFile = req.files?.find((file) => file.fieldname === "profileImage");
-//     const sslcFile = req.files?.find((file) => file.fieldname === "sslc");
-
-//     const profileImage = profileImageFile?.path || "";
-//     const sslc = sslcFile?.path || "";
-    
-
-//     const newStudent = new Student({
-//       name,
-//       age,
-//       dateOfBirth,
-//       gender,
-//       phoneNumber,
-//       place,
-//       state,
-//       district,
-//       pincode,
-//       email,
-//       adhaarNumber,
-//       studyCenterId,
-//       dateOfAdmission,
-//       parentName,
-//       registrationNumber: "123456",
-//       qualification,
-//       sslc,
-//       profileImage,
-//     });
-    
-//     console.log("New student object:", newStudent);
-//     await newStudent.save();
-
-//     res.status(201).json({
-//       message: "Student created successfully",
-//       student: newStudent,
-//       success: true,
-//     });
-//   } catch (error) {
-//     console.error("Error creating student:", error);
-//     res.status(400).json({
-//       message: "Failed to create student",
-//       error: error.message,
-//       success: false,
-//     });
-//   }
-// };
-
-
 
 // for Single student
 export const createStudentWithEnrollment = async (req, res) => {
@@ -244,25 +209,23 @@ export const createStudentWithEnrollment = async (req, res) => {
       student = await newStudent.save();
     }
     const batch = await Batch.findOne({_id: batchId});
-    console.log("batch:", batch);
-    const newEnrollment = new Enrollment({
+    const newApproval = new ApprovalWaiting({
       studentId: student._id,
       courseId,
       batchId,
-      year:batch?.admissionYear,
+      year: batch?.admissionYear,
       studycenterId: studyCenterId,
       enrolledDate: new Date(),
-      isCompleted: false,
-      isPassed: false,
-      isCertificateIssued: false,
+      approvalStatus: "pending",
     });
 
-    await newEnrollment.save();
+    await newApproval.save();
+
 
     return res.status(201).json({
       message: "Student and enrollment created successfully.",
       student,
-      enrollment: newEnrollment,
+      enrollment: newApproval,
       success: true,
     });
   } catch (error) {
@@ -275,101 +238,13 @@ export const createStudentWithEnrollment = async (req, res) => {
   }
 };
 
-// Excel Uploading procedure ...
-// export const EnrollExcelStudents = async (req, res) => {
-//   try {
-//     const data = req.body;
-//     const REQUIRED_FIELDS = [
-//       "name",
-//       "age",
-//       "dateOfBirth",
-//       "gender",
-//       "phoneNumber",
-//       "place",
-//       "district",
-//       "state",
-//       "pincode",
-//       "email",
-//       "adhaarNumber",
-//       "parentName",
-//       "qualification",
-//     ];
-
-//     const newStudents = [];
-//     const pendingEnrollmentStudents = [];
-//     const unavailableStudents = [];
-
-//     for (const entry of data) {
-//       const adhaar = entry.adhaarNumber?.toString().trim();
-
-//       if (!adhaar || adhaar.length !== 12) {
-//         unavailableStudents.push({
-//           ...entry,
-//           reason: "check Adhaar Number",
-//         });
-//         continue;
-//       }
-
-//       const existingStudent = await Student.findOne({ adhaarNumber: adhaar });
-
-//       if (existingStudent) {
-//         const activeEnrollments = await Enrollment.countDocuments({
-//           studentId: existingStudent._id,
-//           isCompleted: false,
-//         });
-
-//       if (activeEnrollments >= 2) {
-//         unavailableStudents.push({
-//           ...entry,
-//           studentId: existingStudent._id,
-//           reason: "Already enrolled",
-//         });
-//       } else {
-//         // Use existing student data from DB, no required field check
-//         pendingEnrollmentStudents.push(existingStudent);
-//       }
-
-        
-//       } else {
-//         // For new student only, check required fields
-//         const missingFields = REQUIRED_FIELDS.filter(
-//           (field) => !entry[field] && entry[field] !== 0
-//         );
-
-//         if (missingFields.length > 0) {
-//           unavailableStudents.push({
-//             ...entry,
-//             reason: "Missing required fields",
-//             missingFields,
-//           });
-
-//         } else {
-
-//           newStudents.push(entry);
-//         }
-//       }
-//     }
-//     console.log("Available students:", newStudents);
-//     console.log("Pending enrollment students:", pendingEnrollmentStudents);
-//     console.log("Unavailable students:", unavailableStudents);
-//     return res.status(200).json({
-//       newStudents,
-//       pendingEnrollmentStudents,
-//       unavailableStudents,
-//       success: true,
-//     });
-//   } catch (err) {
-//     console.error("Import error:", err);
-//     return res.status(500).json({
-//       error: "Failed to process student enrollment data.",
-//       success: false,
-//     });
-//   }
-// };
 
 export const EnrollExcelStudents = async (req, res) => {
   try {
-    const data = req.body;
+    const data = req.body?.data;
+    const courseId = req.body?.course?.courseId;
+    const batchId = req.body?.course?.batchId;
+
 
     const REQUIRED_FIELDS = [
       "name",
@@ -390,7 +265,6 @@ export const EnrollExcelStudents = async (req, res) => {
     const newStudents = [];
     const pendingEnrollmentStudents = [];
     const unavailableStudents = [];
-
     const aadhaarSeen = new Set();
 
     for (const entry of data) {
@@ -399,15 +273,13 @@ export const EnrollExcelStudents = async (req, res) => {
       if (aadhaarSeen.has(adhaar)) {
         unavailableStudents.push({
           ...entry,
-          reason: "Duplicated Aadhaar number Founded",
+          reason: "Duplicate Aadhaar number found in sheet.",
         });
-       continue;
+        continue;
       } else {
         aadhaarSeen.add(adhaar);
-        console.log("Aadhaar seen:", aadhaarSeen);
       }
 
-      // 1. Aadhaar check
       if (!adhaar || adhaar.length !== 12) {
         unavailableStudents.push({
           ...entry,
@@ -416,52 +288,76 @@ export const EnrollExcelStudents = async (req, res) => {
         continue;
       }
 
-      // 2. Existing student check
-      const existingStudent = await Student.findOne({ adhaarNumber: adhaar });
+      const student = await Student.findOne({ adhaarNumber: adhaar });
 
-      if (existingStudent) {
-        const activeEnrollments = await Enrollment.countDocuments({
-          studentId: existingStudent._id,
+      if (student) {
+        const enrollments = await enrollmentSchema.countDocuments({
+          studentId: student._id,
           isCompleted: false,
         });
 
-        if (activeEnrollments >= 2) {
+        const approvals = await ApprovalWaiting.countDocuments({
+          studentId: student._id,
+          approvalStatus: "pending",
+        });
+
+        const totalActive = enrollments + approvals;
+
+        if (totalActive >= 2) {
           unavailableStudents.push({
             ...entry,
-            studentId: existingStudent._id,
-            reason: "Already enrolled in 2 active courses",
+            studentId: student._id,
+            reason: "Student is already enrolled/applied for 2 active courses",
           });
-        } else {
-          pendingEnrollmentStudents.push(existingStudent);
+          continue;
         }
+
+        const alreadyEnrolled = await enrollmentSchema.findOne({
+          studentId: student._id,
+          courseId,
+          isCompleted: false,
+        });
+
+        const alreadyApplied = await ApprovalWaiting.findOne({
+          studentId: student._id,
+          courseId,
+          approvalStatus: "pending",
+        });
+
+        if (alreadyEnrolled || alreadyApplied) {
+          unavailableStudents.push({
+            ...entry,
+            studentId: student._id,
+            reason:
+              "Student has already enrolled/applied in this course",
+          });
+          continue;
+        }
+
+        pendingEnrollmentStudents.push(student);
         continue;
       }
 
-      // 3. Required fields
+      let valid = true;
       for (const field of REQUIRED_FIELDS) {
         if (!entry[field] && entry[field] !== 0) {
           unavailableStudents.push({
             ...entry,
             reason: `Missing field: ${field}`,
           });
-          continue;
+          valid = false;
+          break;
         }
       }
-  
-      
-      const dob = excelSerialToDate(entry.dateOfBirth);
-      const dobISO = new Date(dob).toISOString(); 
+      if (!valid) continue;
 
-      // 4. DOB format (dd-mm-yyyy)
-      if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(dobISO)) {
-        unavailableStudents.push({
-          ...entry,
-          reason: "DOB must be a valid date (yyyy-mm-dd format)",
-        });
+      const dob = excelSerialToDate(entry.dateOfBirth);
+      const dobISO = new Date(dob).toISOString();
+      if (!/^\d{4}-\d{2}-\d{2}T/.test(dobISO)) {
+        unavailableStudents.push({ ...entry, reason: "Invalid DOB format" });
         continue;
       }
 
-      // 5. Phone number must be >= 10 digits
       if (entry.phoneNumber?.toString().length < 10) {
         unavailableStudents.push({
           ...entry,
@@ -470,37 +366,29 @@ export const EnrollExcelStudents = async (req, res) => {
         continue;
       }
 
-      // 6. Age must be a number
       if (isNaN(Number(entry.age))) {
+        unavailableStudents.push({ ...entry, reason: "Age must be a number" });
+        continue;
+      }
+
+      const gender = String(entry.gender || "").toLowerCase();
+      if (!["male", "female", "others"].includes(gender)) {
         unavailableStudents.push({
           ...entry,
-          reason: "Age must be a valid number",
+          reason: "Gender must be male, female, or others",
         });
         continue;
       }
 
-      // 7. Gender validation
-        const gender = String(entry.gender || "").toLowerCase();
-        if (!["male", "female", "others"].includes(gender)) {
-          unavailableStudents.push({
-            ...entry,
-            reason: "Gender must be one of: male, female, others",
-          });
-          continue;
-        }
-
-
-      // 8. Email format
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(entry.email)) {
         unavailableStudents.push({ ...entry, reason: "Invalid email format" });
         continue;
       }
 
-      // ✅ Passed all validations
-      newStudents.push(entry);
+      newStudents.push({ ...entry, dateOfBirth: dobISO });
     }
-    console.log(unavailableStudents);
+
     return res.status(200).json({
       newStudents,
       pendingEnrollmentStudents,
@@ -508,7 +396,6 @@ export const EnrollExcelStudents = async (req, res) => {
       success: true,
     });
   } catch (err) {
-    console.error("Import error:", err);
     return res.status(500).json({
       error: "Failed to process student enrollment data.",
       success: false,
@@ -518,9 +405,6 @@ export const EnrollExcelStudents = async (req, res) => {
 
 
 
-
-
-// Enrolling Excel students with Enrollment 
 export const bulkEnrollStudents = async (req, res) => {
   const date = new Date();
   const today = getDateOnlyFromDate(date);
@@ -528,7 +412,7 @@ export const bulkEnrollStudents = async (req, res) => {
   try {
     const { newStudents, pendingEnrollmentStudents, course } = req.body;
     const studyCenterId = req.user.studycenterId;
-    const enrollments = [];
+    const approvalEntries = [];
 
     const batch = await Batch.findOne({ _id: course.batchId });
     if (!batch) {
@@ -538,45 +422,38 @@ export const bulkEnrollStudents = async (req, res) => {
       });
     }
 
-    // Enroll pending students
+    const studyCenter = await StudyCenter.findOne({ _id: studyCenterId });
+    const atcId = studyCenter.atcId;
+    const lastFour = atcId.toString().slice(-4);
+
+    const lastStudent = await Student.findOne({ studyCenterId })
+      .sort({ createdAt: -1 })
+      .limit(1);
+
+    let lastRegNo = 1000;
+    if (lastStudent) {
+      const regMatch = lastStudent.registrationNumber?.match(/\d{4}$/);
+      lastRegNo = regMatch ? parseInt(regMatch[0], 10) + 1 : 1001;
+    }
+
+    // 🟢 1. Handle Existing Students (pendingEnrollmentStudents)
     for (const student of pendingEnrollmentStudents) {
-      enrollments.push({
+      approvalEntries.push({
         studentId: student._id,
         courseId: course.courseId,
         batchId: course.batchId,
         studycenterId: studyCenterId,
         year: batch.admissionYear,
-        isCompleted: false,
-        isPassed: false,
-        isCertificateIssued: false,
         enrolledDate: today,
+        approvalStatus: "pending",
       });
     }
 
-    const studyCenter = await StudyCenter.findOne({ _id: studyCenterId });
-    const atcId = studyCenter.atcId;
-    const lastFour = atcId.toString().slice(-4); // Ensure last 4 digits
-
-    // Get the last registered student for that study center
-    const lastStudent = await Student.findOne({ studyCenterId })
-      .sort({ createdAt: -1 }) // or _id: -1
-      .limit(1);
-
-    let lastRegNo;
-
-    if (!lastStudent) {
-      // No students yet, start from 1000
-      lastRegNo = 1000;
-    } else {
-      const regMatch = lastStudent.registrationNumber?.match(/\d{4}$/); // Get last 4 digits
-      lastRegNo = regMatch ? parseInt(regMatch[0], 10) + 1 : 1001;
-    }
-
+    // 🟢 2. Handle New Students
     for (const student of newStudents) {
       const paddedReg = String(lastRegNo).padStart(4, "0");
       const registrationNumber = `${lastFour}${paddedReg}`;
 
-      // Generate custom student ID
       const namePart = (student.name || "").substring(0, 3).toUpperCase();
       const phonePart = student.phoneNumber?.toString().slice(-3) || "000";
       const pinPart = student.pincode?.toString().slice(-3) || "000";
@@ -585,7 +462,7 @@ export const bulkEnrollStudents = async (req, res) => {
       const newStudent = await Student.create({
         name: student.name,
         age: student.age,
-        dateOfBirth: student.dateOfBirth,//new Date()
+        dateOfBirth: student.dateOfBirth,
         gender: student.gender,
         phoneNumber: student.phoneNumber,
         place: student.place,
@@ -604,36 +481,36 @@ export const bulkEnrollStudents = async (req, res) => {
         profileImage: student.profileImage || "",
       });
 
-      enrollments.push({
+      approvalEntries.push({
         studentId: newStudent._id,
         courseId: course.courseId,
         batchId: course.batchId,
-        year: batch.admissionYear,
         studycenterId: studyCenterId,
-        isCompleted: false,
-        isPassed: false,
-        isCertificateIssued: false,
+        year: batch.admissionYear,
         enrolledDate: today,
+        approvalStatus: "pending",
       });
 
       lastRegNo += 1;
     }
 
-    await Enrollment.insertMany(enrollments);
+    // Insert into ApprovalWaiting only
+    await ApprovalWaiting.insertMany(approvalEntries);
 
     return res.status(200).json({
       success: true,
-      message: "Students enrolled successfully.",
-      count: enrollments.length,
+      message: "All students moved to approval waiting list.",
+      count: approvalEntries.length,
     });
   } catch (error) {
-    console.error("Bulk Enrollment Error:", error);
+    console.error("Bulk ApprovalWaiting Error:", error);
     return res.status(500).json({
       success: false,
       error: "Internal server error",
     });
   }
 };
+
 
 
 
