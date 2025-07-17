@@ -1,5 +1,10 @@
 import Enrollment from "../models/enrollmentSchema.js";
 import { Types } from "mongoose";
+import ApprovalWaiting from '../models/approvalWaitingSchema.js'
+import Student from "../models/studentSchema.js";
+import Course from "../models/courseSchema.js";
+import batchSchema from "../models/batchSchema.js";
+import StudyCenter from "../models/studyCenterSchema.js";
 
 export const getStudyCenterStudents = async (req, res) => {
   const user = req.user;
@@ -162,37 +167,108 @@ export const getStudyCenterStudents = async (req, res) => {
 
 export const getOneStudent = async (req, res) => {
   try {
-    const { id } = req.query;
-    
-    const enrollment = await Enrollment.findById(id)
-      .populate({
-        path: "studentId",
-      })
-      .populate({ path: "batchId", select: "month" })
-      .populate({ path: "studycenterId", select: "name" })
-      .populate({ path: "courseId", select: "name" });
+    const { id, isEnrolled } = req.query;
 
-    if (!enrollment) {
-      return res.status(404).json({ success: false, message: "Enrollment not found" });
+    if (!id || typeof isEnrolled === "undefined") {
+      return res.status(400).json({
+        success: false,
+        message: "'id' and 'isEnrolled' query parameters are required",
+      });
     }
-    const {studentId, batchId, courseId, studycenterId, ...rest}=enrollment._doc
-    return res.status(200).json({
-      success: true,
-      data : {
+
+    let responseData;
+
+    if (isEnrolled === "true") {
+      // ✅ ENROLLED STUDENT
+      const enrollment = await Enrollment.findById(id)
+        .populate("studentId")
+        .populate({ path: "batchId", select: "month" })
+        .populate({ path: "studycenterId", select: "name" })
+        .populate({ path: "courseId", select: "name" });
+
+      if (!enrollment) {
+        return res
+          .status(404)
+          .json({ success: false, message: "Enrollment not found" });
+      }
+
+      const { studentId, batchId, studycenterId, courseId, ...rest } =
+        enrollment._doc;
+
+      responseData = {
         ...rest,
         ...studentId._doc,
-        studycenter: studycenterId?.name || '',
+        studycenter: studycenterId?.name || "",
         batchMonth: batchId?.month || "",
         ourseName: courseId?.name || "",
+      };
+    } else {
+      // ✅ PENDING STUDENT
+      const approval = await ApprovalWaiting.findById(id);
+
+      if (!approval) {
+        return res
+          .status(404)
+          .json({ success: false, message: "Pending approval not found" });
       }
-      
-    })
-    
-    }catch (error) {
-    console.error("Failed to fetch enrolled students:", error);
-    return res.status(500).json({ success: false, message: "Server Error" });
+
+      const [student, course, batch, studycenter] = await Promise.all([
+        Student.findById(approval.studentId),
+        Course.findById(approval.courseId),
+        batchSchema.findById(approval.batchId),
+        StudyCenter.findById(approval.studycenterId),
+      ]);
+
+      if (!student || !course) {
+        return res
+          .status(404)
+          .json({
+            success: false,
+            message: "Related student or course not found",
+          });
+      }
+
+      responseData = {
+        _id: approval._id,
+        year: approval.year,
+        enrolledDate: approval.enrolledDate || new Date(),
+        isCompleted: "Waiting for approval",
+        isPassed: "Waiting for approval",
+        isCertificateIssued: "Waiting for approval",
+        createdAt: approval.createdAt,
+        updatedAt: approval.updatedAt,
+        __v: approval.__v,
+        name: student.name,
+        age: student.age,
+        dateOfBirth: student.dateOfBirth,
+        gender: student.gender,
+        phoneNumber: student.phoneNumber,
+        place: student.place,
+        district: student.district,
+        state: student.state,
+        pincode: student.pincode,
+        email: student.email,
+        adhaarNumber: student.adhaarNumber,
+        studyCenterId: approval.studycenterId,
+        registrationNumber: "Waiting for approval",
+        dateOfAdmission: student.dateOfAdmission || approval.createdAt,
+        parentName: student.parentName,
+        qualification: student.qualification,
+        sslc: student.sslc,
+        profileImage: student.profileImage,
+        studentId: student.studentId,
+        studycenter: studycenter?.name || "",
+        batchMonth: batch?.month || "",
+        courseName: course.name,
+      };
     }
-}
+
+    return res.status(200).json({ success: true, data: responseData });
+  } catch (error) {
+    console.error("Failed to fetch student:", error);
+    return res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
 
 export const getStudentsForDl = async (req, res) => {
   try {
