@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import ApprovalWaiting from "../models/approvalWaitingSchema.js";
+import enrollmentSchema from "../models/enrollmentSchema.js";
 
 export const getPendingAndRejectedStudents = async (req, res) => {
   try {
@@ -50,9 +51,12 @@ export const getPendingAndRejectedStudents = async (req, res) => {
 
     // Fetch data
     const approvals = await ApprovalWaiting.find(filter)
-      .populate("studentId", "name phoneNumber email adhaarNumber gender")
+      .populate(
+        "studentId",
+        "name phoneNumber email adhaarNumber gender profileImage"
+      )
       .populate("courseId", "name duration")
-      .populate("batchId", "batchName admissionYear")
+      .populate("batchId", "month admissionYear")
       .populate("studycenterId", "name");
 
     // Apply search
@@ -88,4 +92,72 @@ export const getPendingAndRejectedStudents = async (req, res) => {
   }
 };
 
+
+export const updateStatusOfPendingApprovals = async (req, res) => {
+  try {
+    const { pendingIds, status } = req.body;
+
+    // Validate inputs
+    if (!Array.isArray(pendingIds) || !pendingIds.length || !status) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Invalid request. 'pendingIds' (array) and 'status' (string) are required.",
+      });
+    }
+
+
+    // Step 1: Fetch Approval Records
+    const approvals = await ApprovalWaiting.find({
+      _id: { $in: pendingIds },
+    });
+
+    if (!approvals.length) {
+      return res
+        .status(404)
+        .json({
+          success: false,
+          message: "No matching approval records found.",
+        });
+    }
+
+    // Step 2: Update Approval Status
+    await ApprovalWaiting.updateMany(
+      { _id: { $in: pendingIds } },
+      { $set: { approvalStatus: status } }
+    );
+
+    // Step 3: Create Enrollments only if status is 'approved'
+    let enrolledCount = 0;
+
+    if (status === "approved") {
+      const enrollmentDocs = approvals.map((approval) => ({
+        studentId: approval.studentId,
+        courseId: approval.courseId,
+        batchId: approval.batchId,
+        studycenterId: approval.studycenterId,
+        year: approval.year,
+        enrolledDate: approval.enrolledDate || new Date(),
+      }));
+
+      const inserted = await enrollmentSchema.insertMany(enrollmentDocs, {
+        ordered: false,
+      });
+      enrolledCount = inserted.length;
+
+      await ApprovalWaiting.deleteMany({ _id: { $in: pendingIds } });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Status updated successfully.",
+    });
+  } catch (error) {
+    console.error("Error in approveAndEnrollStudents:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
 

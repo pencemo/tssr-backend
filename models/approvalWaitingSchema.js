@@ -14,6 +14,7 @@ const approvalWaitingSchema = new Schema({
     ref: "Course",
     required: true,
   },
+  
   batchId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Batch",

@@ -158,56 +158,34 @@ export const createStudentWithEnrollment = async (req, res) => {
 
     let student = await Student.findOne({ adhaarNumber });
 
-    if (!student) {
-      const studyCenter = await StudyCenter.findOne({ _id: studyCenterId });
-      const atcId = studyCenter.atcId;
-      const lastFour = atcId.toString().slice(-4);
+if (!student) {
+  const namePart = (name || "").substring(0, 3).toUpperCase();
+  const phonePart = phoneNumber?.toString().slice(-3) || "000";
+  const pinPart = pincode?.toString().slice(-3) || "000";
+  const customStudentId = `${namePart}/${phonePart}/${pinPart}`;
 
-      const lastStudent = await Student.findOne({ studyCenterId })
-        .sort({ createdAt: -1 })
-        .limit(1);
+  const newStudent = new Student({
+    name,
+    age,
+    dateOfBirth,
+    gender,
+    phoneNumber,
+    place,
+    state,
+    district,
+    pincode,
+    email,
+    adhaarNumber,
+    dateOfAdmission,
+    parentName,
+    qualification,
+    studentId: customStudentId,
+    sslc,
+    profileImage,
+  });
 
-      let lastRegNo;
-
-      if (!lastStudent) {
-        lastRegNo = 1000;
-      } else {
-        const regMatch = lastStudent.registrationNumber?.match(/\d{4}$/);
-        lastRegNo = regMatch ? parseInt(regMatch[0], 10) + 1 : 1001;
-      }
-
-      const paddedReg = String(lastRegNo).padStart(4, "0");
-      const registrationNumber = `${lastFour}${paddedReg}`;
-
-      const namePart = (name || "").substring(0, 3).toUpperCase();
-      const phonePart = phoneNumber?.toString().slice(-3) || "000";
-      const pinPart = pincode?.toString().slice(-3) || "000";
-      const customStudentId = `${namePart}/${phonePart}/${pinPart}`;
-
-      const newStudent = new Student({
-        name,
-        age,
-        dateOfBirth,
-        gender,
-        phoneNumber,
-        place,
-        state,
-        district,
-        pincode,
-        email,
-        adhaarNumber,
-        studyCenterId,
-        dateOfAdmission,
-        parentName,
-        qualification,
-        registrationNumber,
-        studentId: customStudentId,
-        sslc, // from URL
-        profileImage, // from URL
-      });
-
-      student = await newStudent.save();
-    }
+  student = await newStudent.save();
+}
     const batch = await Batch.findOne({_id: batchId});
     const newApproval = new ApprovalWaiting({
       studentId: student._id,
@@ -404,7 +382,6 @@ export const EnrollExcelStudents = async (req, res) => {
 };
 
 
-
 export const bulkEnrollStudents = async (req, res) => {
   const date = new Date();
   const today = getDateOnlyFromDate(date);
@@ -422,21 +399,7 @@ export const bulkEnrollStudents = async (req, res) => {
       });
     }
 
-    const studyCenter = await StudyCenter.findOne({ _id: studyCenterId });
-    const atcId = studyCenter.atcId;
-    const lastFour = atcId.toString().slice(-4);
-
-    const lastStudent = await Student.findOne({ studyCenterId })
-      .sort({ createdAt: -1 })
-      .limit(1);
-
-    let lastRegNo = 1000;
-    if (lastStudent) {
-      const regMatch = lastStudent.registrationNumber?.match(/\d{4}$/);
-      lastRegNo = regMatch ? parseInt(regMatch[0], 10) + 1 : 1001;
-    }
-
-    // 🟢 1. Handle Existing Students (pendingEnrollmentStudents)
+    // 🟢 1. Handle Existing Students
     for (const student of pendingEnrollmentStudents) {
       approvalEntries.push({
         studentId: student._id,
@@ -451,9 +414,6 @@ export const bulkEnrollStudents = async (req, res) => {
 
     // 🟢 2. Handle New Students
     for (const student of newStudents) {
-      const paddedReg = String(lastRegNo).padStart(4, "0");
-      const registrationNumber = `${lastFour}${paddedReg}`;
-
       const namePart = (student.name || "").substring(0, 3).toUpperCase();
       const phonePart = student.phoneNumber?.toString().slice(-3) || "000";
       const pinPart = student.pincode?.toString().slice(-3) || "000";
@@ -471,14 +431,12 @@ export const bulkEnrollStudents = async (req, res) => {
         pincode: student.pincode,
         email: student.email,
         adhaarNumber: student.adhaarNumber,
-        studyCenterId: studyCenterId,
-        registrationNumber,
-        studentId: customStudentId,
         dateOfAdmission: today,
         parentName: student.parentName,
         qualification: student.qualification,
         sslc: student.sslc,
         profileImage: student.profileImage || "",
+        studentId: customStudentId,
       });
 
       approvalEntries.push({
@@ -490,11 +448,9 @@ export const bulkEnrollStudents = async (req, res) => {
         enrolledDate: today,
         approvalStatus: "pending",
       });
-
-      lastRegNo += 1;
     }
 
-    // Insert into ApprovalWaiting only
+    // Save all to ApprovalWaiting
     await ApprovalWaiting.insertMany(approvalEntries);
 
     return res.status(200).json({
@@ -513,13 +469,11 @@ export const bulkEnrollStudents = async (req, res) => {
 
 
 
-
-
 export const updateStudentById = async (req, res) => {
   try {
     const { id, ...restData } = req.body.data; // Accessing from req.body.data
     console.log("Incoming Data:", req.body.data);
-    console.log("id:",id);
+    //console.log("id:",id);
 
     const updatedData = {
       name: restData.name,
