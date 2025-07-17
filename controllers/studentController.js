@@ -229,7 +229,7 @@ export const getOneStudent = async (req, res) => {
       }
 
       responseData = {
-        _id: approval._id,
+        _id: student._id,
         year: approval.year,
         enrolledDate: approval.enrolledDate || new Date(),
         isCompleted: "Waiting for approval",
@@ -419,5 +419,73 @@ export const getAllStudentsDownloadForAdmin = async (req, res) => {
   } catch (error) {
     console.error("Error in getAllEnrollmentsGroupedByStudyCenter:", error);
     return res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
+export const updateStudentById = async (req, res) => {
+  try {
+    console.log("req.body:", req.body);
+    const { id, isEnrolled, approvalId, ...restData } = req.body;
+
+    const updatedData = {
+      name: restData.name,
+      age: restData.age,
+      gender: restData.gender,
+      dateOfBirth: restData.dateOfBirth
+        ? new Date(restData.dateOfBirth)
+        : undefined,
+      phoneNumber: restData.phoneNumber,
+      email: restData.email,
+      place: restData.place,
+      state: restData.state,
+      district: restData.district,
+      pincode: restData.pincode,
+      parentName: restData.parentName,
+      qualification: restData.qualification,
+      adhaarNumber: restData.adhaarNumber,
+      dateOfAdmission: restData.dateOfAdmission
+        ? new Date(restData.dateOfAdmission)
+        : undefined,
+      profileImage: restData.profileImage,
+      sslc: restData.sslc,
+    };
+
+    // Remove undefined values
+    Object.keys(updatedData).forEach((key) => {
+      if (updatedData[key] === undefined) delete updatedData[key];
+    });
+
+    // ✅ Update student
+    const updatedStudent = await Student.findByIdAndUpdate(id, updatedData, {
+      new: true,
+    });
+
+    if (!updatedStudent) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Student not found" });
+    }
+
+    // ✅ If not enrolled, update approval status
+    if (!isEnrolled && approvalId) {
+      const approval = await ApprovalWaiting.findByIdAndUpdate(
+        approvalId,
+        { approvalStatus: "pending" },
+        { new: true }
+      );
+
+      if (!approval) {
+        return res
+          .status(404)
+          .json({ success: false, message: "Approval record not found" });
+      }
+    }
+
+    return res.status(200).json({ success: true, student: updatedStudent });
+  } catch (error) {
+    console.error("Error updating student:", error);
+    return res
+      .status(500)
+      .json({ success: false, message: "Internal Server Error" });
   }
 };

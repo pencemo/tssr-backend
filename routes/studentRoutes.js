@@ -1,8 +1,7 @@
 import express from "express";
-import {  getAllStudentsDownloadForAdmin, getOneStudent, getStudentsForDl, getStudyCenterStudents } from "../controllers/studentController.js";
+import {  getAllStudentsDownloadForAdmin, getOneStudent, getStudentsForDl, getStudyCenterStudents, updateStudentById } from "../controllers/studentController.js";
 import { isAuthenticated } from "../middlewares/authMiddleware.js";
 import { reportDownloadAccess } from "../middlewares/reportsDownloadMiddleware.js";
-import { updateStudentById } from "../controllers/enrollmentControler.js";
 const router = express.Router();
 
 
