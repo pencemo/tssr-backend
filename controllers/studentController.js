@@ -90,31 +90,29 @@ export const getStudyCenterStudents = async (req, res) => {
                 $or: [
                   { "student.name": new RegExp(search, "i") },
                   { "student.phoneNumber": new RegExp(search, "i") },
-                  { "student.registrationNumber": new RegExp(search, "i") },
+                  { admissionNumber: new RegExp(search, "i") },
                 ],
               },
             },
           ]
         : []),
 
-
       // Group by student only when not searching
       ...(!search
         ? [
             {
               $group: {
-                _id: "$student._id", 
-                doc: { $first: "$$ROOT" }, 
+                _id: "$student._id",
+                doc: { $first: "$$ROOT" },
               },
             },
             {
-              $replaceRoot: { newRoot: "$doc" }, 
+              $replaceRoot: { newRoot: "$doc" },
             },
           ]
         : []),
-        // After $replaceRoot:
-  { $sort: { "student.registrationNumber": -1 } },
-
+      // After $replaceRoot:
+      { $sort: { admissionNumber: -1 } },
 
       // Project final fields
       {
@@ -122,7 +120,7 @@ export const getStudyCenterStudents = async (req, res) => {
           studentName: "$student.name",
           email: "$student.email",
           phoneNumber: "$student.phoneNumber",
-          registrationNumber: "$student.registrationNumber",
+          admissionNumber: "$admissionNumber",
           profileImage: "$student.profileImage",
           batchMonth: "$batch.month",
           courseName: "$course.name",
@@ -192,12 +190,19 @@ export const getOneStudent = async (req, res) => {
           .json({ success: false, message: "Enrollment not found" });
       }
 
-      const { studentId, batchId, studycenterId, courseId, ...rest } =
-        enrollment._doc;
+      const {
+        studentId,
+        batchId,
+        studycenterId,
+        courseId,
+        admissionNumber,
+        ...rest
+      } = enrollment._doc;
 
       responseData = {
         ...rest,
         ...studentId._doc,
+        admissionNumber,
         studycenter: studycenterId?.name || "",
         batchMonth: batchId?.month || "",
         ourseName: courseId?.name || "",
@@ -250,7 +255,7 @@ export const getOneStudent = async (req, res) => {
         email: student.email,
         adhaarNumber: student.adhaarNumber,
         studyCenterId: approval.studycenterId,
-        registrationNumber: "Waiting for approval",
+        admissionNumber: "Waiting for approval",
         dateOfAdmission: student.dateOfAdmission || approval.createdAt,
         parentName: student.parentName,
         qualification: student.qualification,
