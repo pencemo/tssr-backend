@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import ApprovalWaiting from "../models/approvalWaitingSchema.js";
 import enrollmentSchema from "../models/enrollmentSchema.js";
+import StudyCenter from "../models/studyCenterSchema.js";
 
 export const getPendingAndRejectedStudents = async (req, res) => {
   try {
@@ -129,25 +130,59 @@ export const updateStatusOfPendingApprovals = async (req, res) => {
 
     // Step 3: Create Enrollments only if status is 'approved'
     let enrolledCount = 0;
+if (status === "approved") {
+  const enrollmentDocs = [];
 
-    if (status === "approved") {
-      const enrollmentDocs = approvals.map((approval) => ({
-        studentId: approval.studentId,
-        courseId: approval.courseId,
-        batchId: approval.batchId,
-        studycenterId: approval.studycenterId,
-        year: approval.year,
-        enrolledDate: approval.enrolledDate || new Date(),
-      }));
-
-      const inserted = await enrollmentSchema.insertMany(enrollmentDocs, {
-        ordered: false,
-      });
-      enrolledCount = inserted.length;
-
-      await ApprovalWaiting.deleteMany({ _id: { $in: pendingIds } });
+  for (const approval of approvals) {
+    const studyCenter = await StudyCenter.findById(approval.studycenterId);
+    if (!studyCenter || !studyCenter.atcId) {
+      continue; 
     }
 
+    const atcId = studyCenter.atcId;
+    const centerCode = atcId.slice(-4); 
+    console.log("Center Code:",centerCode);
+
+
+    const lastEnrollment = await enrollmentSchema
+      .findOne({
+        studycenterId: approval.studycenterId,
+      })
+      .sort({ createdAt: -1 });
+
+    let nextNumber = 1050;
+    if (lastEnrollment) {
+      const lastNumber = parseInt(
+        lastEnrollment.admissionNumber.slice(4),
+        10
+      );
+      nextNumber = lastNumber + 1;
+    }
+
+    const registrationNumber = `${centerCode}${String(nextNumber).padStart(4, "0")}`;
+    console.log("Registration Number:", registrationNumber);
+
+    enrollmentDocs.push({
+      studentId: approval.studentId,
+      courseId: approval.courseId,
+      batchId: approval.batchId,
+      studycenterId: approval.studycenterId,
+      year: approval.year,
+      enrolledDate: approval.enrolledDate || new Date(),
+      admissionNumber:registrationNumber, 
+    });
+  }
+
+  if (enrollmentDocs.length) {
+    const inserted = await enrollmentSchema.insertMany(enrollmentDocs, {
+      ordered: false,
+    });
+    enrolledCount = inserted.length;
+  }
+
+  // Remove processed approvals
+  await ApprovalWaiting.deleteMany({ _id: { $in: pendingIds } });
+}
     return res.status(200).json({
       success: true,
       message: "Status updated successfully.",

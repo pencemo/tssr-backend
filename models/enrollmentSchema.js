@@ -26,6 +26,10 @@ const enrollmentSchema = new mongoose.Schema(
       type: Number,
       required: true,
     },
+    admissionNumber: {
+      type: String,
+      unique: true,
+    },
     enrolledDate: {
       type: Date,
       default: Date.now,
@@ -43,8 +47,8 @@ const enrollmentSchema = new mongoose.Schema(
       default: false,
     },
     certificateId: {
-      type:String
-    }
+      type: String,
+    },
   },
   { timestamps: true }
 );
