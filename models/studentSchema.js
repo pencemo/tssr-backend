@@ -37,7 +37,7 @@ const studentSchema = new Schema(
     },
     email: {
       type: String,
-      // match: [/.+\@.+\..+/, "Please provide a valid email address"],
+      
     },
     adhaarNumber: {
       type: String,

@@ -425,7 +425,10 @@ export const getAllStudentsDownloadForAdmin = async (req, res) => {
 export const updateStudentById = async (req, res) => {
   try {
     console.log("req.body:", req.body);
-    const { id, isEnrolled, approvalId, ...restData } = req.body;
+    const { id, approvalId, ...restData } = req.body.data;
+    //console.log("id", id);
+    const isEnrolled = req.body.isEnrolled === "true";
+    console.log("isEnrolled", isEnrolled);
 
     const updatedData = {
       name: restData.name,
@@ -456,9 +459,15 @@ export const updateStudentById = async (req, res) => {
     });
 
     // ✅ Update student
-    const updatedStudent = await Student.findByIdAndUpdate(id, updatedData, {
-      new: true,
-    });
+    const updatedStudent = await Student.findByIdAndUpdate(
+      id,
+      updatedData,
+      {
+        new: true,
+      }
+    );
+
+    //console.log("updatedStudent:", updatedStudent);
 
     if (!updatedStudent) {
       return res
@@ -473,7 +482,7 @@ export const updateStudentById = async (req, res) => {
         { approvalStatus: "pending" },
         { new: true }
       );
-
+      console.log("Approval:", approval);
       if (!approval) {
         return res
           .status(404)
