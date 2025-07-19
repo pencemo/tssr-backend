@@ -303,7 +303,6 @@ export const getStudentsForDl = async (req, res) => {
       .populate({ path: "courseId", select: "name" })
       .populate({ path: "studycenterId", select: "name" });
 
-    console.log("Enrollments for download:", enrollments);
     if(enrollments.length === 0) {
       return res.status(404).json({ success: false, message: "No enrollments found for the given criteria." });
     }
@@ -429,11 +428,8 @@ export const getAllStudentsDownloadForAdmin = async (req, res) => {
 
 export const updateStudentById = async (req, res) => {
   try {
-    console.log("req.body:", req.body);
     const { id, approvalId, ...restData } = req.body.data;
-    //console.log("id", id);
     const isEnrolled = req.body.isEnrolled === "true";
-    console.log("isEnrolled", isEnrolled);
 
     const updatedData = {
       name: restData.name,
@@ -472,7 +468,6 @@ export const updateStudentById = async (req, res) => {
       }
     );
 
-    //console.log("updatedStudent:", updatedStudent);
 
     if (!updatedStudent) {
       return res
@@ -487,7 +482,6 @@ export const updateStudentById = async (req, res) => {
         { approvalStatus: "pending" },
         { new: true }
       );
-      console.log("Approval:", approval);
       if (!approval) {
         return res
           .status(404)

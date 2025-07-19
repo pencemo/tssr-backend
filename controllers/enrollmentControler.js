@@ -43,14 +43,12 @@ export const checkEnrollmentByAdhar = async (req, res) => {
       studentId: student._id,
       isCompleted: false,
     });
-    console.log("enrollment :", enrollments);
 
     // Step 3: Count pending approvals
     const pendingApprovals = await ApprovalWaiting.countDocuments({
       studentId: student._id,
       approvalStatus: "pending",
     });
-    console.log("pending approvals :", pendingApprovals);
 
     const totalCourses = enrollments + pendingApprovals;
     if (totalCourses >= 2) {
@@ -81,8 +79,6 @@ export const checkEnrollmentByAdhar = async (req, res) => {
         batchId,
         approvalStatus: "pending",
       });
-      // console.log("alreadyEnrolled :", alreadyEnrolled);
-      // console.log("alreadyApplied :", alreadyApplied);
       if (alreadyEnrolled || alreadyApplied) {
         return res.status(200).json({
           data: {
@@ -125,7 +121,6 @@ export const createStudentWithEnrollment = async (req, res) => {
   try {
     const studyCenterId = req.user.studycenterId;
     const studentData = req.body.student;
-    console.log("req.body:", req.body); 
     const course = req.body.course;
 
     const {

@@ -6,7 +6,6 @@ export const createOrder = async (req, res) => {
     const { productId, quantity } = req.body;
     const buyerId = req.user.id; 
 
-    console.log(buyerId, productId, quantity);
     if (!buyerId || !productId || !quantity) {
       return res.status(400).json({
         success: false,
@@ -63,7 +62,6 @@ export const getAllOrders = async (req, res) => {
 export const updateStatus = async (req, res) => {
   try {
     const { id, status } = req.query;
-    console.log(id, status);
     
 
     if (!["pending", "accepted", "cancelled"].includes(status)) {
@@ -78,7 +76,6 @@ export const updateStatus = async (req, res) => {
       { new: true }
     );
 
-    console.log("Updated:", updatedOrder);
 
     if (!updatedOrder) {
       return res
@@ -99,8 +96,6 @@ export const getOrdersOfAUser = async (req, res) => {
     const buyerId = req.user.id; // Comes from auth middleware
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
-    console.log("page :", page)
-    console.log("limit :", limit)
 
     const skip = (page - 1) * limit;
 
@@ -130,7 +125,6 @@ export const getOrdersOfAUser = async (req, res) => {
 export const getOrdersByStatus = async (req, res) => {
   try {
     const { page, limit, search, status } = req.query;
-   // console.log(req.query);
     const skip = (page - 1) * limit;
     const searchRegex = new RegExp(search, "i");
 

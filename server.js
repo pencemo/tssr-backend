@@ -63,7 +63,7 @@ app.use("/api/request", requestCourseRoutes);
 app.use("/api/approval", ApprovalRoutes);
 app.use("/api/staff", staffRoutes);
 app.use('/', (req,res) => {
-  res.send("This api not listed");
+  res.send("This api not listed"); 
 })
 // Connect to MongoDB
 connectDB();

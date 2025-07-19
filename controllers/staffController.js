@@ -146,4 +146,61 @@ export const updateStaff = async (req, res) => {
   }
 };
 
+export const deleteStaff = async (req, res) => {
+  try {
+    const { id } = req.body;
 
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: "ID is required",
+      });
+    }
+
+    const deletedStaff = await Staff.findByIdAndDelete(id);
+
+    if (!deletedStaff) {
+      return res.status(404).json({
+        success: false,
+        message: "Staff not found",
+      });
+    }
+
+    return res.status(200).json({
+      
+      success: true,
+      message: "Staff deleted successfully",
+    })
+  } catch (error) {
+    console.error("Error deleting staff:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    }
+    )
+  }
+}
+
+
+export const getAllStaffsForDl = async (req, res) => {
+  try{
+    const data = await Staff.find({isActive:true}).lean().select("-_id -createdAt  -updatedAt -__v -isActive -profileImage").sort({createdAt:-1});
+
+    if(!data){
+      return res.status(404).json({
+        success: false,
+        message: "No staffs found",
+      });
+    }
+    return res.status(200).json({
+      success: true,
+      message: "Staffs fetched successfully",
+      data,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
+  }
+}

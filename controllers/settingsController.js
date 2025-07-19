@@ -121,7 +121,6 @@ export const updateAdminAndUserFields = async (req, res) => {
             })
       }
       const isMatch =await bcrypt.compare(oldPassword, user.password);
-      console.log(isMatch);
       if (!isMatch) {
         return res.status(400).json({
           message: "Old password is incorrect",

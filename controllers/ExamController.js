@@ -164,7 +164,6 @@ export const getScheduledExamBatches = async (req, res) => {
       examTime: s.examTime || "not available",
       batches: s.batches.map((batchId) => batchMap[batchId.toString()]), // Array of batch data
     }));
-    console.log("exam schedules :", schedules);
     return res.status(200).json({ success: true, data: response });
   } catch (err) {
     console.error("Error fetching upcoming exam schedules:", err);
@@ -281,7 +280,6 @@ export const getScheduledExamBatchesOfStudyCenter = async (req, res) => {
 export const deleteExamSchedule = async (req, res) => {
   try {
     const { examScheduleId } = req.body;
-    console.log("Exam Schedule ID:", examScheduleId);
 
     if (!examScheduleId) {
       return res.status(400).json({

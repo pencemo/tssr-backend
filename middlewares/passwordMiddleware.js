@@ -4,7 +4,6 @@ import User from "../models/userSchema.js";
 export const passwordMiddleware = async(req, res, next) => {
    try {
      const password = req.body.password;
-     console.log("Password:", password);
      if (!password) {
        return res
          .status(400)

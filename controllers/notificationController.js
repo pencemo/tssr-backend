@@ -82,7 +82,6 @@ export const getNotificationsForEdit = async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(50)
       .lean();
-    console.log("Notifications:", notifications.length);
 
     return res.status(200).json({
       success: true,
@@ -101,7 +100,6 @@ export const getNotificationsForEdit = async (req, res) => {
 export const deleteNotificationById = async (req, res) => {
   try {
     const { id } = req.body;
-    console.log("Notification ID:", id);
 
     // Optional: Validate ID format
     if (!id || id.length !== 24) {

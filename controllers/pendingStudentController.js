@@ -141,7 +141,6 @@ if (status === "approved") {
 
     const atcId = studyCenter.atcId;
     const centerCode = atcId.slice(-4); 
-    console.log("Center Code:",centerCode);
 
 
     const lastEnrollment = await enrollmentSchema
@@ -160,7 +159,6 @@ if (status === "approved") {
     }
 
     const registrationNumber = `${centerCode}${String(nextNumber).padStart(4, "0")}`;
-    console.log("Registration Number:", registrationNumber);
 
     enrollmentDocs.push({
       studentId: approval.studentId,

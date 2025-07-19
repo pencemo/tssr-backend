@@ -86,7 +86,6 @@ export const getCourseById = async (req, res) => {
 // Create new course
 export const createCourse = async (req, res) => {
   try {
-    console.log(req.body);
     const { name, category, duration, subjects } = req.body;
 
     // Optional: Check if course with the same name already exists (if needed)

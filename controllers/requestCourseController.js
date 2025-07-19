@@ -80,7 +80,6 @@ export const changeStatusOfRequestedCourse = async (req, res) => {
     const { requestId, status } = req.body;
 
    const isInclude = ["approved", "rejected"].includes(status);
-    console.log(isInclude);
 
     if (!isInclude) {
       return res.status(400).json({

@@ -27,7 +27,6 @@ export const hallTicketDownload = async (req, res) => {
         message: "Student not found",
       });
     }
-    //console.log(student);
     const enrollment = await Enrollment.findOne({
       studentId: student._id,
       isCompleted: false,
@@ -35,7 +34,6 @@ export const hallTicketDownload = async (req, res) => {
       .populate("batchId courseId", "month name")
       .lean();
       
-      console.log(enrollment);
 
     if (!enrollment) {
       return res.status(404).json({

@@ -7,7 +7,6 @@ import Batch from "../models/batchSchema.js";
 import Course from "../models/courseSchema.js";
 
 export const addStudyCenter = async (req, res) => {
-  console.log(req.body);
   try {
     const {
       name,
@@ -148,7 +147,6 @@ export const getVerifiedActiveStudyCenters = async (req, res) => {
     const skip = (page - 1) * limit;
 
     const searchQuery = req.query.search || "";
-    console.log(searchQuery);
 
     // Build the search condition
     const searchCondition = searchQuery
@@ -381,7 +379,6 @@ export const editStudycenterFieldsByStudycenter = async (req, res) => {
     // Get the studycenterId from the request object
     const id  = req.user.studycenterId;
     // Log the studycenterId to the console
-    console.log("Editing study center with ID:", id);
     // Destructure the request body to get the fields to be updated
     const {
       name,

@@ -73,7 +73,6 @@ export const createBatch = async (req, res) => {
 
 export const getBatchesOfCourse = async (req, res) => {
   const { courseId } = req.query;
-  console.log("Course ID:", courseId);
   const monthOrder = {
     january: 1,
     february: 2,
@@ -155,7 +154,6 @@ export const editAdmissionStatus = async (req, res) => {
     batch.admissionYear = year;
 
     await batch.save();
-    console.log("Batch updated successfully:", batch);
 
     return res.status(200).json({
       success: true,
@@ -246,7 +244,6 @@ export const getOpenOrManuallyStartedBatches = async (req, res) => {
     }).sort({ startDate: 1 });
   
     const currentDate = getDateOnlyFromDate(new Date());
-    //console.log("Current Date:", currentDate);
 
     return res.status(200).json({
       success: true,
@@ -367,7 +364,6 @@ export const getAdmissionNotAvailableBatches = async (req, res) => {
         const isExpired = batch.endDate
           ? currentDate > new Date(batch.endDate)
           : false;
-      console.log("Batch End Date:", batch.endDate, "Is Expired:", isExpired);
       return (
         searchMatch &&
         (!batch.isAdmissionStarted ||
