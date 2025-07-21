@@ -1,7 +1,6 @@
 import mongoose from "mongoose";
-import StudyCenter from "../models/studyCenterSchema.js"; // adjust the path if needed
+import StudyCenter from "../models/studyCenterSchema.js"; 
 import bcrypt from "bcryptjs";
-import moment from "moment";
 import User from "../models/userSchema.js";
 import Batch from "../models/batchSchema.js";
 import Course from "../models/courseSchema.js";
@@ -237,10 +236,10 @@ export const getStudyCenterById = async (req, res) => {
   }
 };
 
+
 export const updateStudyCenter = async (req, res) => {
   try {
     const { id } = req.query;
-    // Extract only allowed fields from the request body
     const {
       name,
       renewalDate,
@@ -254,35 +253,40 @@ export const updateStudyCenter = async (req, res) => {
       courses,
       isActive,
       isApproved,
+      users = [],
     } = req.body;
-    
-    // === Email format check ===
+
+    // === Email format check (only if email is being updated) ===
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    if (email && !emailRegex.test(email)) {
       return res.status(400).json({
         success: false,
         message: "Invalid email address",
       });
     }
 
-    // === Update StudyCenter ===
+    const updateFields = {};
+    if (name !== undefined) updateFields.name = name;
+    if (renewalDate !== undefined)
+      updateFields.renewalDate = new Date(renewalDate);
+    if (place !== undefined) updateFields.place = place;
+    if (pincode !== undefined) updateFields.pincode = pincode;
+    if (district !== undefined) updateFields.district = district;
+    if (state !== undefined) updateFields.state = state;
+    if (centerHead !== undefined) updateFields.centerHead = centerHead;
+    if (email !== undefined) updateFields.email = email;
+    if (phoneNumber !== undefined) updateFields.phoneNumber = phoneNumber;
+    if (courses !== undefined) updateFields.courses = courses;
+    if (isApproved !== undefined) updateFields.isApproved = isApproved;
+    if (isActive !== undefined) updateFields.isActive = isActive;
+
     const updatedCenter = await StudyCenter.findByIdAndUpdate(
       id,
+      updateFields,
       {
-        name,
-        renewalDate: new Date(renewalDate),
-        place,
-        pincode,
-        district,
-        state,
-        centerHead,
-        email,
-        phoneNumber,
-        courses,
-        isApproved,
-        isActive,
-      },
-      { new: true }
+        new: true,
+        runValidators: true,
+      }
     );
 
     if (!updatedCenter) {
@@ -292,18 +296,71 @@ export const updateStudyCenter = async (req, res) => {
       });
     }
 
+    // === Process each user update/create ===
+    for (const user of users) {
+      const { _id, name, email, phoneNumber, password, isActive } = user;
+
+      const updateUserFields = {};
+      if (name !== undefined) updateUserFields.name = name;
+      if (email !== undefined) updateUserFields.email = email;
+      if (phoneNumber !== undefined) updateUserFields.phoneNumber = phoneNumber;
+      if (isActive !== undefined) updateUserFields.isActive = isActive;
+
+      if (password) {
+        const hashedPassword = await bcrypt.hash(password, 10);
+        updateUserFields.password = hashedPassword;
+      }
+
+      if (email) {
+
+        const emailExistsInUser = await User.findOne({
+          email,
+          ...(_id ? { _id: { $ne: _id } } : {}),
+        });
+
+        if (emailExistsInUser) {
+          return res.status(400).json({
+            success: false,
+            message: `Email ${email} is already in use, Try another email`,
+          });
+        }
+
+      }
+      if (_id) {
+        await User.findByIdAndUpdate(_id, updateUserFields, {
+          new: true,
+          runValidators: true,
+        });
+      } else {
+        if (!password) continue; 
+
+
+
+        await User.create({
+          ...updateUserFields,
+          password: updateUserFields.password,
+          isVerified: true,
+          role: "studycenter_user",
+          isAdmin: false,
+          studycenterId: id,
+        });
+      }
+    }
+
     res.status(200).json({
       success: true,
-      message: "Study center updated successfully",
+      message: "Study center and users updated successfully",
       data: updatedCenter,
     });
   } catch (err) {
+    console.error("Update study center error:", err);
     res.status(500).json({
       success: false,
       message: "Server error: " + err.message,
     });
   }
 };
+
 
 export const getAllStudyCenterForExcel = async (req, res) => {
   try {
@@ -385,13 +442,11 @@ export const getCoursesWithBatchesOfAStudyCenter = async (req, res) => {
   }
 };
 
-//edit studycenter fields
+
 export const editStudycenterFieldsByStudycenter = async (req, res) => {
   try {
-    // Get the studycenterId from the request object
     const id  = req.user.studycenterId;
-    // Log the studycenterId to the console
-    // Destructure the request body to get the fields to be updated
+    
     const {
       name,
       email,
@@ -399,10 +454,9 @@ export const editStudycenterFieldsByStudycenter = async (req, res) => {
       pincode,
       district,
       place,
-      centerHead
+      centerHead,
     } = req.body;
 
-    // Update the studycenter with the new fields
     const updatedCenter = await StudyCenter.findByIdAndUpdate(
       id,
       {
@@ -417,16 +471,23 @@ export const editStudycenterFieldsByStudycenter = async (req, res) => {
       { new: true, runValidators: true }
     );
 
-    // If the studycenter is not found, return a 404 status code with a message
     if (!updatedCenter) {
       return res.status(404).json({ message: 'Study Center not found' , success:false });
     }
 
-    // If the studycenter is found, return a 200 status code with a message and the updated studycenter
     res.json({ message: 'Study Center updated successfully', data: updatedCenter , success:true});
   } catch (err) {
-    // If there is an error, log it to the console and return a 500 status code with a message
     console.error(err);
     res.status(500).json({ message: 'Server error' , success:false});
   }
 };
+
+
+
+
+
+
+
+
+
+
