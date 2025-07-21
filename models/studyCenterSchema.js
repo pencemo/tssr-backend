@@ -4,6 +4,9 @@ const { Schema } = mongoose;
 
 const StudycenterSchema = new Schema(
   {
+    logo: {
+    type: String,      
+    },
     name: {
       type: String,
       required: true,

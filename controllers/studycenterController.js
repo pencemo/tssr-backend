@@ -256,6 +256,9 @@ export const updateStudyCenter = async (req, res) => {
       users = [],
     } = req.body;
 
+
+    console.log("Users to update:",req.body);
+
     // === Email format check (only if email is being updated) ===
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (email && !emailRegex.test(email)) {
