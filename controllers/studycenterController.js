@@ -213,10 +213,22 @@ export const getStudyCenterById = async (req, res) => {
       });
     }
 
-    res.status(200).json({
+    const user = await User.find({ studycenterId: studyCenter._id }).select(
+      "-password -__v -updatedAt -createdAt -role -isAdmin -isVerified -verificationCode"
+    );
+    if (!user || user.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No user found for this study center.",
+      });
+    }
+
+    return res.status(200).json({
       success: true,
       data: studyCenter,
+      user
     });
+
   } catch (err) {
     res.status(500).json({
       success: false,
