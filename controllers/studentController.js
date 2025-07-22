@@ -278,6 +278,7 @@ export const getOneStudent = async (req, res) => {
 export const getStudentsForDl = async (req, res) => {
   try {
     const studycenterId = req.user?.studycenterId || req.body.studycenterId;
+
     if (!req.user.isAdmin) {
       if (req.user.studycenterId == null) {
         return res.status(403).json({
@@ -286,13 +287,13 @@ export const getStudentsForDl = async (req, res) => {
         });
       }
     }
-    const { courseId, batchId, year, fields } = req.body || {}; ;
+    const { courseId, batchId, year, fields } = req.body || {};
 
     const query = {};
     if (studycenterId) query.studycenterId = studycenterId;
     if (courseId) query.courseId = courseId;
     if (batchId) query.batchId = batchId;
-    if (year) query.year = year;       
+    if (year) query.year = year;
 
     const enrollments = await Enrollment.find(query)
       .populate({
@@ -303,8 +304,13 @@ export const getStudentsForDl = async (req, res) => {
       .populate({ path: "courseId", select: "name" })
       .populate({ path: "studycenterId", select: "name" });
 
-    if(enrollments.length === 0) {
-      return res.status(404).json({ success: false, message: "No enrollments found for the given criteria." });
+    if (enrollments.length === 0) {
+      return res
+        .status(404)
+        .json({
+          success: false,
+          message: "No enrollments found for the given criteria.",
+        });
     }
 
     const formattedData = enrollments
@@ -334,18 +340,35 @@ export const getStudentsForDl = async (req, res) => {
           isPassed: isPassed ? "Passed" : "Not Passed",
           batchMonth: batchId?.month || "",
           courseName: courseId?.name || "",
+          admissionNumber: en.admissionNumber || "",
           ...(req.user.isAdmin && {
             studycenterName: en.studycenterId?.name || "",
           }),
         };
       })
       .filter(Boolean); // Remove nulls
+    
+    // ✅ Sorting logic
+    if (req.user.isAdmin && !req.body.studycenterId) {
+      // Group by study center, then sort each group by student name
+      formattedData.sort((a, b) => {
+        const centerCompare = (a.studycenterName || "").localeCompare(
+          b.studycenterName || ""
+        );
+        if (centerCompare !== 0) return centerCompare;
+        return (a.name || "").localeCompare(b.name || "");
+      });
+    } else {
+      // Sort by student name only
+      formattedData.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+    }
 
     return res.status(200).json({
       success: true,
       data: formattedData,
-      studycenterName:
-        studycenterId ? enrollments[0]?.studycenterId?.name : "All Study Centers",
+      studycenterName: studycenterId
+        ? enrollments[0]?.studycenterId?.name
+        : "All Study Centers",
 
       courseName: courseId ? enrollments[0].courseId.name : "All Courses",
       batchMonth: batchId ? enrollments[0].batchId.month : "All Batches",
@@ -429,7 +452,8 @@ export const getAllStudentsDownloadForAdmin = async (req, res) => {
 export const updateStudentById = async (req, res) => {
   try {
     const { id, approvalId, ...restData } = req.body.data;
-    const isEnrolled = req.body.isEnrolled === "true";
+    const isEnrolled = req.body.data.isEnrolled === "true";
+    console.log("req.body", req.body.data);
 
     const updatedData = {
       name: restData.name,
