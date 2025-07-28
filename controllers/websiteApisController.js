@@ -63,7 +63,6 @@ export const requestATC = async (req, res) => {
       studyCenterId: newStudyCenter._id,
     });
   } catch (error) {
-    console.error("Error in requestATC:", error);
     return res.status(500).json({
       success: false,
       message: "An error occurred while submitting the study center request.",
@@ -95,8 +94,7 @@ export const getUnapprovedStudyCenters = async (req, res) => {
 
 export const updateAtcRequest = async (req, res) => {
   try {
-    const { id } = req.params;
-    const { status, date } = req.body;
+    const { status, date, id } = req.body;
 
     if (!["accepted", "rejected"].includes(status)) {
       return res.status(400).json({
@@ -105,7 +103,7 @@ export const updateAtcRequest = async (req, res) => {
       });
     }
 
-    const studyCenter = await StudyCenter.findById(atcId);
+    const studyCenter = await StudyCenter.findById(id);
     if (!studyCenter) {
       return res.status(404).json({
         success: false,
@@ -124,7 +122,10 @@ export const updateAtcRequest = async (req, res) => {
       // === Generate regNo and atcId ===
       let newNumber = 1050;
       let regNo = 50301;
-      const lastCenter = await StudyCenter.findOne().sort({ createdAt: -1 });
+      const lastCenter = await StudyCenter.findOne({ isApproved: true }).sort({
+        createdAt: -1,
+      });
+      console.log("Last Center:", lastCenter);
 
       if (lastCenter?.atcId) {
         const parts = lastCenter.atcId.split("/");
@@ -147,7 +148,6 @@ export const updateAtcRequest = async (req, res) => {
         .toUpperCase();
       const newAtcId = `${namePart}/${districtPart}/${newNumber}`;
 
-      // === Apply Updates ===
       studyCenter.isApproved = true;
       studyCenter.isActive = true;
       studyCenter.renewalDate = new Date(date);
@@ -162,7 +162,7 @@ export const updateAtcRequest = async (req, res) => {
         data: studyCenter,
       });
     } else if (status === "rejected") {
-      await StudyCenter.findByIdAndDelete(atcId);
+      await StudyCenter.findByIdAndDelete(id);
       return res.status(200).json({
         success: true,
         message: "Study center request rejected and deleted successfully.",

@@ -65,7 +65,7 @@ const StudycenterSchema = new Schema(
   }
 );
 
-StudycenterSchema.index({ courses: 1 });
+// StudycenterSchema.index({ courses: 1 });
 
 const StudyCenter = mongoose.model("Studycenter", StudycenterSchema);
 

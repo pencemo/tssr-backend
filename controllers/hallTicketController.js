@@ -51,9 +51,12 @@ export const hallTicketDownload = async (req, res) => {
           message: "Date of birth is required",
         });
       }
+      
+      const providedDOB = new Date(dob).toDateString();
+      const actualDOB = new Date(student.dateOfBirth).toDateString();
 
-      const providedDOB = new Date(dob).toISOString().split("T")[0];
-      const actualDOB = new Date(student.dateOfBirth).toISOString().split("T")[0];
+      console.log("Provided DOB:", providedDOB);
+      console.log("Actual DOB:", actualDOB);
 
       if (providedDOB !== actualDOB) {
         return res.status(401).json({
