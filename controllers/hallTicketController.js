@@ -1,67 +1,73 @@
 
+
 import Enrollment from "../models/enrollmentSchema.js";
 import ExamSchedule from "../models/examScheduleSchema.js";
-import Student from "../models/studentSchema.js";
-import StudyCenter from "../models/studyCenterSchema.js";
+import jwt from 'jsonwebtoken';
 
 export const hallTicketDownload = async (req, res) => {
   try {
-    const { registrationNo } = req.body;
+    const { admissionNumber, dob } = req.body;
 
-    if (!registrationNo) {
+    if (!admissionNumber) {
       return res.status(400).json({
         success: false,
-        message: "Registration number is required",
+        message: "Admission number is required",
       });
     }
 
-    const student = await Student.findOne({
-      registrationNumber: registrationNo,
-    })
-      .select("_id name studyCenterId profileImage")
-      .lean();
-
-    if (!student) {
-      return res.status(404).json({
-        success: false,
-        message: "Student not found",
-      });
+    const token = req.cookies?.token;
+    let user = {};
+    if (token) {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      user = {
+        id: decoded.id,
+        isAdmin: decoded.isAdmin,
+        studycenterId: decoded.studycenterId,
+      };
     }
-    const enrollment = await Enrollment.findOne({
-      studentId: student._id,
-      isCompleted: false,
-    })
-      .populate("batchId courseId", "month name")
+
+    const enrollment = await Enrollment.findOne({ admissionNumber })
+      .populate("batchId courseId studentId studycenterId")
       .lean();
-      
 
     if (!enrollment) {
       return res.status(404).json({
         success: false,
-        message: "No active enrollment or batch/course info found",
+        message: "Enrollment not found",
       });
     }
 
-    const batchId = enrollment.batchId._id.toString();
-    const courseName = enrollment.courseId.name;
+    const {
+      studentId: student,
+      batchId: batch,
+      courseId: course,
+      studycenterId: studyCenter,
+    } = enrollment;
 
-    const studyCenter = await StudyCenter.findById(student.studyCenterId)
-      .select("name")
-      .lean();
+    if (!user.studycenterId) {
+      if (!dob ) {
+        return res.status(400).json({
+          success: false,
+          message: "Date of birth is required",
+        });
+      }
 
-    if (!studyCenter) {
-      return res.status(404).json({
-        success: false,
-        message: "Study center not found",
-      });
+      const providedDOB = new Date(dob).toISOString().split("T")[0];
+      const actualDOB = new Date(student.dateOfBirth).toISOString().split("T")[0];
+
+      if (providedDOB !== actualDOB) {
+        return res.status(401).json({
+          success: false,
+          message: "Date of birth does not match our records",
+        });
+      }
     }
 
-   
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
     const examSchedule = await ExamSchedule.findOne({
-      batches: batchId,
+      batches: { $in: [batch._id] },
       "examDate.to": { $gte: today },
     })
       .select("examName examDate examTime changedCenters")
@@ -75,7 +81,7 @@ export const hallTicketDownload = async (req, res) => {
     }
 
     const centerOverride = examSchedule.changedCenters?.find(
-      (c) => c.centerId?.toString() === student.studyCenterId.toString()
+      (c) => c.centerId?.toString() === studyCenter._id.toString()
     );
 
     const examCenterLocation = centerOverride?.newLocation || studyCenter.name;
@@ -85,10 +91,10 @@ export const hallTicketDownload = async (req, res) => {
       message: "Hall ticket approved",
       data: {
         studentName: student.name,
-        registrationNo,
-        courseName,
+        registrationNo: admissionNumber,
+        courseName: course.name,
         profileImage: student.profileImage,
-        studyCenter:studyCenter.name,
+        studyCenter: studyCenter.name,
         examName: examSchedule.examName,
         examDate: examSchedule.examDate,
         examTime: examSchedule.examTime,
@@ -96,10 +102,10 @@ export const hallTicketDownload = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Error approving hall ticket:", error);
+    console.error("Error generating hall ticket:", error);
     return res.status(500).json({
       success: false,
-      message: "Server error while approving hall ticket",
+      message: "Server error while generating hall ticket",
     });
   }
 };

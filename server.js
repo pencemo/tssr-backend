@@ -22,6 +22,7 @@ import hallTicketRoutes from './routes/hallTicketRoutes.js';
 import requestCourseRoutes from "./routes/requestCourseRoutes.js";
 import ApprovalRoutes from "./routes/pendingStudentRoutes.js";
 import staffRoutes from "./routes/staffRoutes.js";
+import externalApiRoutes from "./routes/websiteApisRoutes.js";
 dotenv.config();
 const app = express();
 app.use(cookieParser());
@@ -62,6 +63,7 @@ app.use('/api/hallticket',hallTicketRoutes)
 app.use("/api/request", requestCourseRoutes);
 app.use("/api/approval", ApprovalRoutes);
 app.use("/api/staff", staffRoutes);
+app.use("/api/externalApi",externalApiRoutes);
 app.use('/', (req,res) => {
   res.send("This api not listed"); 
 })

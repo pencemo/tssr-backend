@@ -17,7 +17,6 @@ const StudycenterSchema = new Schema(
     },
     renewalDate: {
       type: Date,
-      required: true,
     },
     phoneNumber: {
       type: Number,
@@ -45,15 +44,12 @@ const StudycenterSchema = new Schema(
     },
     atcId: {
       type: String,
-      required: true,
     },
     courses: [
-      { type: mongoose.Schema.Types.ObjectId, ref: "Course", required: true },
+      { type: mongoose.Schema.Types.ObjectId, ref: "Course" },
     ],
     regNo: {
       type: String,
-      required: true,
-      unique: true,
     },
     isActive: {
       type: Boolean,

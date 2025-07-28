@@ -305,12 +305,10 @@ export const getStudentsForDl = async (req, res) => {
       .populate({ path: "studycenterId", select: "name" });
 
     if (enrollments.length === 0) {
-      return res
-        .status(404)
-        .json({
-          success: false,
-          message: "No enrollments found for the given criteria.",
-        });
+      return res.status(404).json({
+        success: false,
+        message: "No enrollments found for the given criteria.",
+      });
     }
 
     const formattedData = enrollments
@@ -347,21 +345,17 @@ export const getStudentsForDl = async (req, res) => {
         };
       })
       .filter(Boolean); // Remove nulls
-    
-    // ✅ Sorting logic
-    if (req.user.isAdmin && !req.body.studycenterId) {
-      // Group by study center, then sort each group by student name
-      formattedData.sort((a, b) => {
+
+    // ✅ Sort students by name always, and by studycenterName only if needed
+    formattedData.sort((a, b) => {
+      if (req.user.isAdmin && !req.body.studycenterId) {
         const centerCompare = (a.studycenterName || "").localeCompare(
           b.studycenterName || ""
         );
         if (centerCompare !== 0) return centerCompare;
-        return (a.name || "").localeCompare(b.name || "");
-      });
-    } else {
-      // Sort by student name only
-      formattedData.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
-    }
+      }
+      return (a.name || "").localeCompare(b.name || "");
+    });
 
     return res.status(200).json({
       success: true,
