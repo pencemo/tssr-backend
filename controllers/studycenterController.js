@@ -257,7 +257,6 @@ export const updateStudyCenter = async (req, res) => {
     } = req.body;
 
 
-    console.log("Users to update:",req.body);
 
     // === Email format check (only if email is being updated) ===
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -356,7 +355,6 @@ export const updateStudyCenter = async (req, res) => {
       data: updatedCenter,
     });
   } catch (err) {
-    console.error("Update study center error:", err);
     res.status(500).json({
       success: false,
       message: "Server error: " + err.message,
@@ -378,7 +376,6 @@ export const getAllStudyCenterForExcel = async (req, res) => {
       data: studyCenters,
     });
   } catch (error) {
-    console.error("Error fetching study centers for Excel:", error);
     return res.status(500).json({
       success: false,
       message: "Failed to fetch study centers for Excel",
@@ -440,7 +437,6 @@ export const getCoursesWithBatchesOfAStudyCenter = async (req, res) => {
 
     res.json({ success: true, data: results });
   } catch (error) {
-    console.error("Error fetching courses and batches:", error);
     res.status(500).json({ success: false, message: "Server Error" });
   }
 };
@@ -480,7 +476,6 @@ export const editStudycenterFieldsByStudycenter = async (req, res) => {
 
     res.json({ message: 'Study Center updated successfully', data: updatedCenter , success:true});
   } catch (err) {
-    console.error(err);
     res.status(500).json({ message: 'Server error' , success:false});
   }
 };

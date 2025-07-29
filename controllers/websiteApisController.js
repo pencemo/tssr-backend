@@ -85,7 +85,6 @@ export const getUnapprovedStudyCenters = async (req, res) => {
       data: unapprovedCenters,
     });
   } catch (error) {
-    console.error("Error fetching unapproved study centers:", error);
     return res.status(500).json({
       success: false,
       message: "An error occurred while fetching unapproved study centers.",
@@ -96,11 +95,8 @@ export const getUnapprovedStudyCenters = async (req, res) => {
 
 export const updateAtcRequest = async (req, res) => {
   try {
-        console.log("query:", req.body);
 
     const { status, date, id } = req.body;
-
-    console.log("Update ATC Request:", req.body);
 
     if (!["accepted", "rejected"].includes(status)) {
       return res.status(400).json({
@@ -131,7 +127,6 @@ export const updateAtcRequest = async (req, res) => {
       const lastCenter = await StudyCenter.findOne({ isApproved: true }).sort({
         createdAt: -1, 
       });
-      console.log("Last Center:", lastCenter);
 
       if (lastCenter?.atcId) {
         const parts = lastCenter.atcId.split("/");
@@ -348,7 +343,6 @@ export const updateAtcRequest = async (req, res) => {
       });
     }
   } catch (error) {
-    console.error("Error updating ATC request:", error);
     res.status(500).json({
       success: false,
       message: "An error occurred while updating the ATC request.",
@@ -356,3 +350,4 @@ export const updateAtcRequest = async (req, res) => {
     });
   }
 };
+

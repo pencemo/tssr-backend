@@ -3,57 +3,7 @@ import RequestCourse from "../models/requestCourseSchema.js";
 import StudyCenter from "../models/studyCenterSchema.js";
 import { sendNotification } from '../utils/notification.js'
 
-// export const requestCourse = async (req, res) => {
-//   try {
-//     const { courseId } = req.body;
-//     const studycenterId = req.user.studycenterId;
 
-//     if (!courseId) {
-//       return res.status(400).json({
-//         success: false,
-//         message: "Course ID is required",
-//       });
-//     }
-
-//     // Check if the course has already been requested by this study center
-//     const existingRequest = await RequestCourse.findOne({
-//       courseId,
-//       studycenterId,
-//     });
-
-//     if (existingRequest) {
-//       return res.status(400).json({
-//         success: false,
-//         message: "This course has already been requested by your study center",
-//       });
-//       }
-      
-//     const newRequest = await RequestCourse.create({
-//       courseId,
-//       studycenterId,
-//     });
-    
-//       const studycenter = await StudyCenter.findById(studycenterId).select("name");
-//       await sendNotification({
-//         title: "New Request Received",
-//         description: `A new request has been submitted by ${studycenter.name}.`,
-//         receiverId: null,
-//         category: "New Request",
-//         receiverIsAdmin: true,
-//       });
-//     return res.status(201).json({
-//       success: true,
-//       message: "Course request submitted",
-//       data: newRequest,
-//     });
-//   } catch (error) {
-//     console.error("Error requesting course:", error);
-//     return res.status(500).json({
-//       success: false,
-//       message: "Server error. Could not process course request.",
-//     });
-//   }
-// };
 
 
 export const requestCourse = async (req, res) => {

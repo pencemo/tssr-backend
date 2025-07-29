@@ -4,6 +4,7 @@ import Enrollment from "../models/enrollmentSchema.js";
 import ExamSchedule from "../models/examScheduleSchema.js";
 import jwt from 'jsonwebtoken';
 
+
 export const hallTicketDownload = async (req, res) => {
   try {
     const { admissionNumber, dob } = req.body;
@@ -13,17 +14,6 @@ export const hallTicketDownload = async (req, res) => {
         success: false,
         message: "Admission number is required",
       });
-    }
-
-    const token = req.cookies?.token;
-    let user = {};
-    if (token) {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      user = {
-        id: decoded.id,
-        isAdmin: decoded.isAdmin,
-        studycenterId: decoded.studycenterId,
-      };
     }
 
     const enrollment = await Enrollment.findOne({ admissionNumber })
@@ -44,19 +34,9 @@ export const hallTicketDownload = async (req, res) => {
       studycenterId: studyCenter,
     } = enrollment;
 
-    if (!user.studycenterId) {
-      if (!dob ) {
-        return res.status(400).json({
-          success: false,
-          message: "Date of birth is required",
-        });
-      }
-      
+    if (dob) {
       const providedDOB = new Date(dob).toDateString();
       const actualDOB = new Date(student.dateOfBirth).toDateString();
-
-      console.log("Provided DOB:", providedDOB);
-      console.log("Actual DOB:", actualDOB);
 
       if (providedDOB !== actualDOB) {
         return res.status(401).json({
@@ -109,6 +89,7 @@ export const hallTicketDownload = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Server error while generating hall ticket",
+      error: error.message,
     });
   }
 };

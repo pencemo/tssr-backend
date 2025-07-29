@@ -324,7 +324,6 @@ export const getStudentsForDl = async (req, res) => {
         } = en._doc;
 
         if (!studentId || !studentId._doc) {
-          console.warn(`Missing student for enrollment ID: ${en._id}`);
           return null;
         }
 
@@ -447,7 +446,6 @@ export const updateStudentById = async (req, res) => {
   try {
     const { id, approvalId, ...restData } = req.body.data;
     const isEnrolled = req.body.data.isEnrolled === "true";
-    console.log("req.body", req.body.data);
 
     const updatedData = {
       name: restData.name,
