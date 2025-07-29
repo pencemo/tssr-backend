@@ -1,5 +1,6 @@
 import StudyCenter from "../models/studyCenterSchema.js";
 import User from "../models/userSchema.js";
+import bcrypt from "bcryptjs";
 
 export const requestATC = async (req, res) => {
   try {
@@ -94,7 +95,11 @@ export const getUnapprovedStudyCenters = async (req, res) => {
 
 export const updateAtcRequest = async (req, res) => {
   try {
+        console.log("query:", req.body);
+
     const { status, date, id } = req.body;
+
+    console.log("Update ATC Request:", req.body);
 
     if (!["accepted", "rejected"].includes(status)) {
       return res.status(400).json({
@@ -111,6 +116,7 @@ export const updateAtcRequest = async (req, res) => {
       });
     }
 
+
     if (status === "accepted") {
       if (!date) {
         return res.status(400).json({
@@ -119,7 +125,6 @@ export const updateAtcRequest = async (req, res) => {
         });
       }
 
-      // === Generate regNo and atcId ===
       let newNumber = 1050;
       let regNo = 50301;
       const lastCenter = await StudyCenter.findOne({ isApproved: true }).sort({
@@ -143,9 +148,7 @@ export const updateAtcRequest = async (req, res) => {
       }
 
       const namePart = (studyCenter.name || "XXX").slice(0, 3).toUpperCase();
-      const districtPart = (studyCenter.district || "XXX")
-        .slice(0, 3)
-        .toUpperCase();
+      const districtPart = (studyCenter.district || "XXX").slice(0, 3).toUpperCase();
       const newAtcId = `${namePart}/${districtPart}/${newNumber}`;
 
       studyCenter.isApproved = true;
@@ -156,10 +159,31 @@ export const updateAtcRequest = async (req, res) => {
 
       await studyCenter.save();
 
+      // Create a user for the study center
+      const phone = studyCenter.phoneNumber?.toString() || "";
+      const last6Digits = phone.slice(-6);
+      console.log("Last 6 digits of phone:", last6Digits);
+      const hashedPassword = await bcrypt.hash(last6Digits, 10);
+
+      const user = await User.create({
+        name: studyCenter.centerHead,
+        email: studyCenter.email,
+        password: hashedPassword,
+        isAdmin: false,
+        isVerified: true,
+        role: "studycenter_user",
+        studycenterId: studyCenter._id,
+        phoneNumber: studyCenter.phoneNumber,
+        isActive: true,
+      });
+
       return res.status(200).json({
         success: true,
-        message: "Study center approved successfully.",
-        data: studyCenter,
+        message: "Study center approved and user account created successfully.",
+        data: {
+          studyCenter,
+          user,
+        },
       });
     } else if (status === "rejected") {
       await StudyCenter.findByIdAndDelete(id);
