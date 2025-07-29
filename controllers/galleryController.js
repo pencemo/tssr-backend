@@ -27,12 +27,23 @@ export const AddGalleryPost = async (req, res) => {
 
 export const editGalleryPost = async (req, res) => {
     try {
-        const { id, image, title, description } = req.body;
-        const updatePost = await Gallery.findByIdAndUpdate(id, {
+        const { _id, image, title, description } = req.body;
+        if (!_id) {
+            res.json({
+                message: "Post ID is required",
+                success: false
+            });
+        }
+        
+        const updatePost = await Gallery.findByIdAndUpdate(
+          _id,
+          {
             image,
             title,
-            description
-        }, { new: true });
+            description,
+          },
+          { new: true }
+        );
 
         res.json({
             message: "Gallery post edited successfully",
