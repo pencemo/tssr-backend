@@ -3,6 +3,7 @@
 import Enrollment from "../models/enrollmentSchema.js";
 import ExamSchedule from "../models/examScheduleSchema.js";
 import jwt from 'jsonwebtoken';
+import { getDurationFromTimeRange } from "../utils/getDurationFromTime.js";
 
 
 export const hallTicketDownload = async (req, res) => {
@@ -69,19 +70,29 @@ export const hallTicketDownload = async (req, res) => {
 
     const examCenterLocation = centerOverride?.newLocation || studyCenter.name;
 
+    const duration = getDurationFromTimeRange(
+      examSchedule.examTime.from,
+      examSchedule.examTime.to
+    );
+
     return res.status(200).json({
       success: true,
       message: "Hall ticket approved",
       data: {
         studentName: student.name,
+        studentId: student._id,
+        email: student.email,
+        adhaarNumber: student.adhaarNumber,
         registrationNo: admissionNumber,
         courseName: course.name,
+        courseCode: course.courseId,
         profileImage: student.profileImage,
         studyCenter: studyCenter.name,
         examName: examSchedule.examName,
         examDate: examSchedule.examDate,
         examTime: examSchedule.examTime,
         examCenter: examCenterLocation,
+        duration,
       },
     });
   } catch (error) {
