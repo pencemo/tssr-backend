@@ -98,7 +98,6 @@ export const updateStatusOfPendingApprovals = async (req, res) => {
   try {
     const { pendingIds, status } = req.body;
 
-    // Validate inputs
     if (!Array.isArray(pendingIds) || !pendingIds.length || !status) {
       return res.status(400).json({
         success: false,
@@ -107,90 +106,102 @@ export const updateStatusOfPendingApprovals = async (req, res) => {
       });
     }
 
-
-    // Step 1: Fetch Approval Records
-    const approvals = await ApprovalWaiting.find({
-      _id: { $in: pendingIds },
-    });
-
+    const approvals = await ApprovalWaiting.find({ _id: { $in: pendingIds } });
     if (!approvals.length) {
-      return res
-        .status(404)
-        .json({
-          success: false,
-          message: "No matching approval records found.",
-        });
+      return res.status(404).json({
+        success: false,
+        message: "No matching approval records found.",
+      });
     }
 
-    // Step 2: Update Approval Status
-    await ApprovalWaiting.updateMany(
-      { _id: { $in: pendingIds } },
-      { $set: { approvalStatus: status } }
-    );
+    const groupedApprovals = {};
+    approvals.forEach((approval) => {
+      const key = approval.studycenterId.toString();
+      if (!groupedApprovals[key])
+        groupedApprovals[key] = { approvals: [], studyCenter: null };
+      groupedApprovals[key].approvals.push(approval);
+    });
 
-    // Step 3: Create Enrollments only if status is 'approved'
+    const studycenterIds = Object.keys(groupedApprovals);
+    const studyCenters = await StudyCenter.find({
+      _id: { $in: studycenterIds },
+    });
+
+    studyCenters.forEach((sc) => {
+      const key = sc._id.toString();
+      if (groupedApprovals[key]) {
+        groupedApprovals[key].studyCenter = sc;
+      }
+    });
+
     let enrolledCount = 0;
-if (status === "approved") {
-  const enrollmentDocs = [];
 
-  for (const approval of approvals) {
-    const studyCenter = await StudyCenter.findById(approval.studycenterId);
-    if (!studyCenter || !studyCenter.atcId) {
-      continue; 
+    for (const centerId of studycenterIds) {
+      const group = groupedApprovals[centerId];
+      const studyCenter = group.studyCenter;
+
+      if (!studyCenter || !studyCenter.atcId) {
+        return res.status(400).json({
+          success: false,
+          message: `Study center (${centerId}) not found or invalid.`,
+        });
+      }
+
+      const centerCode = studyCenter.atcId.slice(-4);
+
+      const lastEnrollment = await enrollmentSchema
+        .findOne({ studycenterId: centerId })
+        .sort({ admissionNumber: -1 });
+
+      let lastNumber = 1049;
+      if (lastEnrollment) {
+        const parsed = parseInt(lastEnrollment.admissionNumber.slice(4), 10);
+        if (!isNaN(parsed)) lastNumber = parsed;
+      }
+
+      let nextNumber = lastNumber + 1;
+
+      for (const approval of group.approvals) {
+        if (status === "approved") {
+          const admissionNumber = `${centerCode}${String(nextNumber).padStart(4, "0")}`;
+          nextNumber++;
+
+          const enrollmentDoc = {
+            studentId: approval.studentId,
+            courseId: approval.courseId,
+            batchId: approval.batchId,
+            studycenterId: approval.studycenterId,
+            year: approval.year,
+            enrolledDate: approval.enrolledDate || new Date(),
+            admissionNumber,
+          };
+
+          await enrollmentSchema.create(enrollmentDoc);
+          enrolledCount++;
+
+          await ApprovalWaiting.deleteOne({ _id: approval._id });
+        } else {
+          await ApprovalWaiting.updateOne(
+            { _id: approval._id },
+            { $set: { approvalStatus: status } }
+          );
+        }
+      }
     }
 
-    const atcId = studyCenter.atcId;
-    const centerCode = atcId.slice(-4); 
-
-
-    const lastEnrollment = await enrollmentSchema
-      .findOne({
-        studycenterId: approval.studycenterId,
-      })
-      .sort({ createdAt: -1 });
-
-    let nextNumber = 1050;
-    if (lastEnrollment) {
-      const lastNumber = parseInt(
-        lastEnrollment.admissionNumber.slice(4),
-        10
-      );
-      nextNumber = lastNumber + 1;
-    }
-
-    const registrationNumber = `${centerCode}${String(nextNumber).padStart(4, "0")}`;
-
-    enrollmentDocs.push({
-      studentId: approval.studentId,
-      courseId: approval.courseId,
-      batchId: approval.batchId,
-      studycenterId: approval.studycenterId,
-      year: approval.year,
-      enrolledDate: approval.enrolledDate || new Date(),
-      admissionNumber:registrationNumber, 
-    });
-  }
-
-  if (enrollmentDocs.length) {
-    const inserted = await enrollmentSchema.insertMany(enrollmentDocs, {
-      ordered: false,
-    });
-    enrolledCount = inserted.length;
-  }
-
-  // Remove processed approvals
-  await ApprovalWaiting.deleteMany({ _id: { $in: pendingIds } });
-}
     return res.status(200).json({
       success: true,
-      message: "Status updated successfully.",
+      message: `Status updated successfully. ${enrolledCount} enrolled.`,
     });
   } catch (error) {
-    console.error("Error in approveAndEnrollStudents:", error);
+    console.error("Error in updateStatusOfPendingApprovals:", error);
     return res.status(500).json({
       success: false,
       message: "Internal server error",
     });
   }
 };
+
+
+
 

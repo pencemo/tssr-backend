@@ -1,11 +1,11 @@
 import Student from "../models/studentSchema.js";
 import Enrollment from "../models/enrollmentSchema.js";
 import { getDateOnlyFromDate } from "../utils/dateUtils.js";
-import StudyCenter from "../models/studyCenterSchema.js";
 import Batch from "../models/batchSchema.js";
 import enrollmentSchema from "../models/enrollmentSchema.js";
 import { excelSerialToDate } from "../utils/excelDateTojsonDate.js";
 import ApprovalWaiting from '../models/approvalWaitingSchema.js'
+import mongoose from "mongoose";
 
 export const checkEnrollmentByAdhar = async (req, res) => {
   try {
@@ -211,7 +211,6 @@ if (!student) {
   }
 };
 
-
 export const EnrollExcelStudents = async (req, res) => {
   try {
     const data = req.body?.data;
@@ -324,8 +323,12 @@ export const EnrollExcelStudents = async (req, res) => {
       }
       if (!valid) continue;
 
+      console.log("Date of Birth:", entry.dateOfBirth);
+
       const dob = excelSerialToDate(entry.dateOfBirth);
+      console.log("Converted DOB:", dob);
       const dobISO = new Date(dob).toISOString();
+      console.log("DOB ISO String:", dobISO);
       if (!/^\d{4}-\d{2}-\d{2}T/.test(dobISO)) {
         unavailableStudents.push({ ...entry, reason: "Invalid DOB format" });
         continue;
@@ -376,8 +379,230 @@ export const EnrollExcelStudents = async (req, res) => {
   }
 };
 
+// export const EnrollExcelStudents = async (req, res) => {
+//   try {
+//     const data = req.body?.data || [];
+//     const courseId = req.body?.course?.courseId;
+//     const batchId = req.body?.course?.batchId;
+
+//     const REQUIRED_FIELDS = [
+//       "name",
+//       "age",
+//       "dateOfBirth",
+//       "gender",
+//       "phoneNumber",
+//       "place",
+//       "district",
+//       "state",
+//       "pincode",
+//       "email",
+//       "adhaarNumber",
+//       "parentName",
+//       "qualification",
+//     ];
+
+//     const newStudents = [];
+//     const pendingEnrollmentStudents = [];
+//     const unavailableStudents = [];
+
+//     const aadhaarSeen = new Set();
+//     const aadhaarToEntry = new Map();
+
+//     const validAadhaars = [];
+
+//     for (const entry of data) {
+//       const aadhaar = entry.adhaarNumber?.toString().trim();
+
+//       if (!aadhaar || aadhaar.length !== 12 || isNaN(Number(aadhaar))) {
+//         unavailableStudents.push({
+//           ...entry,
+//           reason: "Invalid Aadhaar number",
+//         });
+//         continue;
+//       }
+
+//       if (aadhaarSeen.has(aadhaar)) {
+//         unavailableStudents.push({
+//           ...entry,
+//           reason: "Duplicate Aadhaar number found in sheet.",
+//         });
+//         continue;
+//       }
+
+//       aadhaarSeen.add(aadhaar);
+//       aadhaarToEntry.set(aadhaar, entry);
+//       validAadhaars.push(aadhaar);
+//     }
+
+//     const existingStudents = await Student.find({
+//       adhaarNumber: { $in: validAadhaars },
+//     });
+
+//     const studentMap = new Map();
+//     const studentIdMap = new Map();
+//     const newAadhaars = new Set(validAadhaars);
+
+//     for (const student of existingStudents) {
+//       studentMap.set(student.adhaarNumber, student);
+//       studentIdMap.set(student._id.toString(), student);
+//       newAadhaars.delete(student.adhaarNumber);
+//     }
+
+//     const existingStudentIds = Array.from(studentIdMap.keys());
+
+//     const [enrollments, approvals] = await Promise.all([
+//       enrollmentSchema.find({
+//         studentId: { $in: existingStudentIds },
+//         isCompleted: false,
+//       }),
+//       ApprovalWaiting.find({
+//         studentId: { $in: existingStudentIds },
+//         approvalStatus: "pending",
+//       }),
+//     ]);
+
+//     const enrollMap = new Map();
+//     const approvalMap = new Map();
+
+//     for (const e of enrollments) {
+//       const id = e.studentId.toString();
+//       if (!enrollMap.has(id)) enrollMap.set(id, []);
+//       enrollMap.get(id).push(e);
+//     }
+
+//     for (const a of approvals) {
+//       const id = a.studentId.toString();
+//       if (!approvalMap.has(id)) approvalMap.set(id, []);
+//       approvalMap.get(id).push(a);
+//     }
+
+//     // Step 4: Process Existing Students
+//     for (const [aadhaar, student] of studentMap) {
+//       const entry = aadhaarToEntry.get(aadhaar);
+//       const studentId = student._id.toString();
+
+//       const totalActive =
+//         (enrollMap.get(studentId)?.length || 0) +
+//         (approvalMap.get(studentId)?.length || 0);
+
+//       if (totalActive >= 2) {
+//         unavailableStudents.push({
+//           ...entry,
+//           studentId,
+//           reason: "Student is already enrolled/applied for 2 active courses",
+//         });
+//         continue;
+//       }
+
+//       const enrolledInCourse = enrollMap
+//         .get(studentId)
+//         ?.some((e) => e.courseId.toString() === courseId);
+
+//       const appliedInCourse = approvalMap
+//         .get(studentId)
+//         ?.some((a) => a.courseId.toString() === courseId);
+
+//       if (enrolledInCourse || appliedInCourse) {
+//         unavailableStudents.push({
+//           ...entry,
+//           studentId,
+//           reason: "Student has already enrolled/applied in this course",
+//         });
+//         continue;
+//       }
+
+//       pendingEnrollmentStudents.push(student);
+//     }
+
+//     // Step 5: Process New Students (not in DB yet)
+//     for (const aadhaar of newAadhaars) {
+//       const entry = aadhaarToEntry.get(aadhaar);
+
+//       let valid = true;
+
+//       for (const field of REQUIRED_FIELDS) {
+//         if (!entry[field] && entry[field] !== 0) {
+//           unavailableStudents.push({
+//             ...entry,
+//             reason: `Missing field: ${field}`,
+//           });
+//           valid = false;
+//           break;
+//         }
+//       }
+//       if (!valid) continue;
+
+//       const dob = excelSerialToDate(entry.dateOfBirth);
+//       const dobISO = new Date(dob).toISOString();
+
+//       if (!/^\d{4}-\d{2}-\d{2}T/.test(dobISO)) {
+//         unavailableStudents.push({
+//           ...entry,
+//           reason: "Invalid DOB format",
+//         });
+//         continue;
+//       }
+
+//       if (entry.phoneNumber?.toString().length < 10) {
+//         unavailableStudents.push({
+//           ...entry,
+//           reason: "Phone number must be at least 10 digits",
+//         });
+//         continue;
+//       }
+
+//       if (isNaN(Number(entry.age))) {
+//         unavailableStudents.push({
+//           ...entry,
+//           reason: "Age must be a number",
+//         });
+//         continue;
+//       }
+
+//       const gender = String(entry.gender || "").toLowerCase();
+//       if (!["male", "female", "others"].includes(gender)) {
+//         unavailableStudents.push({
+//           ...entry,
+//           reason: "Gender must be male, female, or others",
+//         });
+//         continue;
+//       }
+
+//       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+//       if (!emailRegex.test(entry.email)) {
+//         unavailableStudents.push({
+//           ...entry,
+//           reason: "Invalid email format",
+//         });
+//         continue;
+//       }
+
+//       newStudents.push({
+//         ...entry,
+//         dateOfBirth: dobISO,
+//       });
+//     }
+
+//     return res.status(200).json({
+//       success: true,
+//       newStudents,
+//       pendingEnrollmentStudents,
+//       unavailableStudents,
+//     });
+//   } catch (err) {
+//     console.error("Error in EnrollExcelStudents:", err);
+//     return res.status(500).json({
+//       success: false,
+//       error: "Failed to process student enrollment data.",
+//     });
+//   }
+// };
+
 
 export const bulkEnrollStudents = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   const date = new Date();
   const today = getDateOnlyFromDate(date);
 
@@ -386,15 +611,16 @@ export const bulkEnrollStudents = async (req, res) => {
     const studyCenterId = req.user.studycenterId;
     const approvalEntries = [];
 
-    const batch = await Batch.findOne({ _id: course.batchId });
+    const batch = await Batch.findOne({ _id: course.batchId }).session(session);
     if (!batch) {
+      await session.abortTransaction();
+      session.endSession();
       return res.status(404).json({
         success: false,
         message: "Batch not found",
       });
     }
 
-    // 🟢 1. Handle Existing Students
     for (const student of pendingEnrollmentStudents) {
       approvalEntries.push({
         studentId: student._id,
@@ -407,35 +633,39 @@ export const bulkEnrollStudents = async (req, res) => {
       });
     }
 
-    // 🟢 2. Handle New Students
     for (const student of newStudents) {
       const namePart = (student.name || "").substring(0, 3).toUpperCase();
       const phonePart = student.phoneNumber?.toString().slice(-3) || "000";
       const pinPart = student.pincode?.toString().slice(-3) || "000";
       const customStudentId = `${namePart}/${phonePart}/${pinPart}`;
 
-      const newStudent = await Student.create({
-        name: student.name,
-        age: student.age,
-        dateOfBirth: student.dateOfBirth,
-        gender: student.gender,
-        phoneNumber: student.phoneNumber,
-        place: student.place,
-        district: student.district,
-        state: student.state,
-        pincode: student.pincode,
-        email: student.email,
-        adhaarNumber: student.adhaarNumber,
-        dateOfAdmission: today,
-        parentName: student.parentName,
-        qualification: student.qualification,
-        sslc: student.sslc,
-        profileImage: student.profileImage || "",
-        studentId: customStudentId,
-      });
+      const newStudent = await Student.create(
+        [
+          {
+            name: student.name,
+            age: student.age,
+            dateOfBirth: student.dateOfBirth,
+            gender: student.gender,
+            phoneNumber: student.phoneNumber,
+            place: student.place,
+            district: student.district,
+            state: student.state,
+            pincode: student.pincode,
+            email: student.email,
+            adhaarNumber: student.adhaarNumber,
+            dateOfAdmission: today,
+            parentName: student.parentName,
+            qualification: student.qualification,
+            sslc: student.sslc,
+            profileImage: student.profileImage || "",
+            studentId: customStudentId,
+          },
+        ],
+        { session }
+      );
 
       approvalEntries.push({
-        studentId: newStudent._id,
+        studentId: newStudent[0]._id,
         courseId: course.courseId,
         batchId: course.batchId,
         studycenterId: studyCenterId,
@@ -445,8 +675,10 @@ export const bulkEnrollStudents = async (req, res) => {
       });
     }
 
-    // Save all to ApprovalWaiting
-    await ApprovalWaiting.insertMany(approvalEntries);
+    await ApprovalWaiting.insertMany(approvalEntries, { session });
+
+    await session.commitTransaction();
+    session.endSession();
 
     return res.status(200).json({
       success: true,
@@ -454,6 +686,8 @@ export const bulkEnrollStudents = async (req, res) => {
       count: approvalEntries.length,
     });
   } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
     console.error("Bulk ApprovalWaiting Error:", error);
     return res.status(500).json({
       success: false,
@@ -461,8 +695,5 @@ export const bulkEnrollStudents = async (req, res) => {
     });
   }
 };
-
-
-
 
 

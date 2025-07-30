@@ -1,8 +1,11 @@
-export function excelSerialToDate(serial) {
-  if (typeof serial !== "number") return null;
+export function excelSerialToDate(value) {
+  const parsed = Number(value);
 
-  const excelEpoch = new Date(Date.UTC(1899, 11, 30)); // Excel starts on Dec 30, 1899
-  const date = new Date(excelEpoch.getTime() + serial * 24 * 60 * 60 * 1000);
+  if (!isNaN(parsed) && parsed > 59) {
+    const excelEpoch = new Date(Date.UTC(1899, 11, 30));
+    return new Date(excelEpoch.getTime() + parsed * 24 * 60 * 60 * 1000);
+  }
 
-  return date;
+  const parsedDate = new Date(value);
+  return isNaN(parsedDate.getTime()) ? null : parsedDate;
 }

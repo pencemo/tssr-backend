@@ -43,15 +43,6 @@ const studentSchema = new Schema(
       type: String,
       unique: true,
     },
-    // studyCenterId: {  
-    //   type: mongoose.Schema.Types.ObjectId,
-    //   ref: "Studycenter",
-    //   required: true,
-    // },
-    // registrationNumber: {
-    //   type: String,
-    //   unique: true,
-    // },
     dateOfAdmission: {
       type: Date,
     },
