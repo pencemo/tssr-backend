@@ -20,6 +20,7 @@ export const addStudyCenter = async (req, res) => {
       phoneNumber,
       courses,
       password,
+      logo
     } = req.body;
 
     // === Email format validation ===
@@ -102,6 +103,7 @@ export const addStudyCenter = async (req, res) => {
       email,
       phoneNumber,
       courses,
+      logo,
       isApproved: true,
       isActive: true,
     });
@@ -454,6 +456,7 @@ export const editStudycenterFieldsByStudycenter = async (req, res) => {
       district,
       place,
       centerHead,
+      logo
     } = req.body;
 
     const updatedCenter = await StudyCenter.findByIdAndUpdate(
@@ -466,6 +469,7 @@ export const editStudycenterFieldsByStudycenter = async (req, res) => {
         district,
         place,
         centerHead,
+        logo
       },
       { new: true, runValidators: true }
     );

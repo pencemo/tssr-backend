@@ -176,6 +176,7 @@ export const login = async (req, res) => {
               state: studyCenter.state,
               centerHead: studyCenter.centerHead,
               atcId: studyCenter.atcId,
+              logo: studyCenter?.logo || "",
             },
           }),
         },
@@ -205,7 +206,7 @@ export const isOuth = async (req, res) => {
         .select("-password -__v -verificationCode")
         .populate(
           "studycenterId",
-          "name regNo email phoneNumber renewalDate isVerified isActive place district pincode state centerHead atcId"
+          "name regNo email phoneNumber logo renewalDate isVerified isActive place district pincode state centerHead atcId"
         );
       
     }
