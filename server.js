@@ -41,8 +41,8 @@ app.use(express.urlencoded({ extended: true }));
 
 // app.use(cors(corsOptions));
 const allowedOrigins = [
-  process.env.FRONTEND_URL,
-  process.env.FRONTEND_URL2,
+  process.env.FRONTEND_URL?.trim().replace(/\/$/, ""),
+  process.env.FRONTEND_URL2?.trim().replace(/\/$/, ""),
   'http://localhost:5173'
 ];
 
@@ -67,7 +67,8 @@ app.use(cors({
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE"]
 }));
-app.use(morgan("dev"));
+
+// app.use(morgan("dev"));
 
 // Routes
 app.use("/api/auth", authenticationRoutes);
