@@ -3,6 +3,7 @@ import resultSchema from "../models/resultSchema.js";
 export const storeResultFromExcel = async (req, res) => {
   try {
     const resultsArray = req.body;
+    console.log("req.body;,",req.body)
 
     if (!Array.isArray(resultsArray) || resultsArray.length === 0) {
       return res.status(400).json({

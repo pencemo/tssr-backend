@@ -41,8 +41,8 @@ const resultSchema = new mongoose.Schema(
     subjects: [
       new mongoose.Schema(
         {
-          name: { type: String, required: true },
-          grade: { type: String, required: true },
+          name: { type: String },
+          grade: { type: String },
         },
         { _id: false } 
       ),
