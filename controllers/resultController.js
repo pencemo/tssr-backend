@@ -1,75 +1,75 @@
-// backend/controllers/resultController.js
-import Result from "../models/resultSchema.js";
+import resultSchema from "../models/resultSchema.js";
 
-// Get all results
-export const getAllResults = async (req, res) => {
+export const storeResultFromExcel = async (req, res) => {
   try {
-    const results = await Result.find()
-      .populate("studentId")
-      .populate("courseId");
-    res.status(200).json(results);
-  } catch (error) {
-    res.status(500).json({ error: "Failed to fetch results" });
-  }
-};
+    const resultsArray = req.body;
 
-// Get a single result by ID
-export const getResultById = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const result = await Result.findById(id)
-      .populate("studentId")
-      .populate("courseId");
-    if (!result) {
-      return res.status(404).json({ error: "Result not found" });
+    if (!Array.isArray(resultsArray) || resultsArray.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Request body must be a non-empty array of results.",
+      });
     }
-    res.status(200).json(result);
-  } catch (error) {
-    res.status(500).json({ error: "Failed to fetch result" });
-  }
-};
 
-// Create a new result
-export const createResult = async (req, res) => {
-  try {
-    const { studentId, courseId, status } = req.body;
-    const newResult = new Result({ studentId, courseId, status });
-    await newResult.save();
-    res.status(201).json(newResult);
-  } catch (error) {
-    res.status(500).json({ error: "Failed to create result" });
-  }
-};
+    const parsedResults = resultsArray.map((resultData) => {
+      const {
+        admissionNumber,
+        name,
+        studyCenterName,
+        examCenterName,
+        courseName,
+        duration,
+        grade,
+        remark,
+        dateOfExam,
+        subjects,
+      } = resultData;
 
-// Update a result by ID
-export const updateResult = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { studentId, courseId, status } = req.body;
-    const updatedResult = await Result.findByIdAndUpdate(
-      id,
-      { studentId, courseId, status },
-      { new: true }
-    );
-    if (!updatedResult) {
-      return res.status(404).json({ error: "Result not found" });
-    }
-    res.status(200).json(updatedResult);
-  } catch (error) {
-    res.status(500).json({ error: "Failed to update result" });
-  }
-};
+      if (
+        !admissionNumber ||
+        !name ||
+        !studyCenterName ||
+        !examCenterName ||
+        !courseName ||
+        !duration ||
+        !dateOfExam ||
+        !subjects ||
+        subjects.length === 0
+      ) {
+        throw new Error("Missing required fields in one or more results.");
+      }
 
-// Delete a result by ID
-export const deleteResult = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const deletedResult = await Result.findByIdAndDelete(id);
-    if (!deletedResult) {
-      return res.status(404).json({ error: "Result not found" });
-    }
-    res.status(200).json({ message: "Result deleted" });
+      const parsedSubjects = subjects.map((subject) => ({
+        name: subject.name?.trim(),
+        grade: subject.grade?.trim(),
+      }));
+
+      return {
+        admissionNumber,
+        studentName: name,
+        studyCenterName,
+        examCenterName,
+        courseName,
+        duration,
+        dateOfExam,
+        grade,
+        remark,
+        subjects: parsedSubjects,
+      };
+    });
+
+    const createdResults = await resultSchema.create(parsedResults); 
+
+    return res.status(201).json({
+      success: true,
+      message: "All results uploaded successfully.",
+      data: createdResults,
+    });
   } catch (error) {
-    res.status(500).json({ error: "Failed to delete result" });
+    console.error("Error uploading results:", error.message);
+    return res.status(500).json({
+      success: false,
+      message: "Server error while uploading multiple results.",
+    });
   }
 };

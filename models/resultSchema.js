@@ -1,40 +1,56 @@
-// models/Result.js
 import mongoose from "mongoose";
 
-const { Schema } = mongoose;
-
-const resultSchema = new Schema(
+const resultSchema = new mongoose.Schema(
   {
-    studentId: {
-      type: Schema.Types.ObjectId,
-      ref: "Student",
-      required: true,
-    },
-    courseId: {
-      type: Schema.Types.ObjectId,
-      ref: "Course",
-      required: true,
-    },
-    status: {
+    admissionNumber: {
       type: String,
-      enum: ["Pass", "Fail"],
-      default: "Pass",
-    },
-    marks: {
-      type: Number,
       required: true,
     },
-    subjectId: {
-      type: Schema.Types.ObjectId,
-      ref: "Subject",
+    studentName: {
+      type: String,
       required: true,
     },
+    studyCenterName: {
+      type: String,
+      required: true,
+    },
+    examCenterName: {
+      type: String,
+      required: true,
+    },
+    courseName: {
+      type: String,
+      required: true,
+    },
+    duration: {
+      type: String,
+      required: true,
+    },
+    dateOfExam: {
+      type: String,
+      required: true,
+    },
+    grade: {
+      type: String,
+      default: "",
+    },
+    remark: {
+      type: String,
+      default: "",
+    },
+    subjects: [
+      new mongoose.Schema(
+        {
+          name: { type: String, required: true },
+          grade: { type: String, required: true },
+        },
+        { _id: false } 
+      ),
+    ],
   },
   {
     timestamps: true,
   }
 );
 
-const Result = mongoose.model("Result", resultSchema);
-
-export default Result;
+export default mongoose.model("Result", resultSchema);
