@@ -528,7 +528,6 @@ export const getStudentsForResultUploadExcel = async (req, res) => {
       });
     }
 
-    // Step 1: Find ExamSchedule
     const schedule = await ExamSchedule.findById(examScheduleId).lean();
     if (!schedule) {
       return res.status(404).json({
@@ -537,7 +536,6 @@ export const getStudentsForResultUploadExcel = async (req, res) => {
       });
     }
 
-    // Step 2: Verify that the batch exists in this schedule
     const batchExists = schedule.batches.some(
       (id) => id.toString() === batchId
     );
@@ -548,9 +546,8 @@ export const getStudentsForResultUploadExcel = async (req, res) => {
       });
     }
 
-    // Step 3: Fetch Course details (including subjects)
     const course = await Course.findById(courseId)
-      .populate("subjects", "name")
+      .populate("subjects", "name isActive")
       .lean();
     if (!course) {
       return res.status(404).json({
@@ -559,7 +556,6 @@ export const getStudentsForResultUploadExcel = async (req, res) => {
       });
     }
 
-    // Step 4: Fetch Batch details
     const batch = await batchSchema.findById(batchId).lean();
     if (!batch) {
       return res.status(404).json({
@@ -568,7 +564,6 @@ export const getStudentsForResultUploadExcel = async (req, res) => {
       });
     }
 
-    // Step 5: Fetch Enrollments (filter by batch, course, and year)
     const enrollments = await Enrollment.find({
       courseId,
       batchId,
@@ -578,19 +573,17 @@ export const getStudentsForResultUploadExcel = async (req, res) => {
       .populate("studycenterId")
       .lean();
 
-    // if (enrollments.length === 0) {
-    //   return res.status(404).json({
-    //     success: false,
-    //     message: "No enrolled students found for this batch and course",
-    //   });
-    // }
+    if (enrollments.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No enrolled students found for this batch and course",
+      });
+    }
 
-    // Step 6: Prepare response data
     const resultData = enrollments.map((enroll) => {
       const student = enroll.studentId;
       const studycenter = enroll.studycenterId;
 
-      // Check for changed center
       const changedCenter = schedule.changedCenters.find(
         (c) => c.centerId?.toString() === studycenter._id.toString()
       );
@@ -603,13 +596,17 @@ export const getStudentsForResultUploadExcel = async (req, res) => {
         courseName: course.name,
         duration: course.duration,
         dateOfExam: schedule.examDate,
-        subjects: course.subjects.map((s) => s.name),
+        grade: "",
+        remark:"" 
       };
     });
 
     return res.status(200).json({
       success: true,
       data: resultData,
+      subjects: course.subjects
+        .filter((s) => s.isActive)
+        .map((s) => s.name),
     });
   } catch (error) {
     console.error("Error fetching result upload details:", error);
