@@ -5,6 +5,7 @@ import Student from "../models/studentSchema.js";
 import Course from "../models/courseSchema.js";
 import batchSchema from "../models/batchSchema.js";
 import StudyCenter from "../models/studyCenterSchema.js";
+import ExamSchedule from "../models/examScheduleSchema.js";
 
 export const getStudyCenterStudents = async (req, res) => {
   const user = req.user;
@@ -511,5 +512,110 @@ export const updateStudentById = async (req, res) => {
     return res
       .status(500)
       .json({ success: false, message: "Internal Server Error" });
+  }
+};
+
+
+
+export const getStudentsForResultUploadExcel = async (req, res) => {
+  try {
+    const { examScheduleId, courseId, batchId } = req.body;
+
+    if (!examScheduleId || !courseId || !batchId) {
+      return res.status(400).json({
+        success: false,
+        message: "examScheduleId, courseId and batchId are required",
+      });
+    }
+
+    // Step 1: Find ExamSchedule
+    const schedule = await ExamSchedule.findById(examScheduleId).lean();
+    if (!schedule) {
+      return res.status(404).json({
+        success: false,
+        message: "Exam schedule not found",
+      });
+    }
+
+    // Step 2: Verify that the batch exists in this schedule
+    const batchExists = schedule.batches.some(
+      (id) => id.toString() === batchId
+    );
+    if (!batchExists) {
+      return res.status(400).json({
+        success: false,
+        message: "This batch is not part of the given exam schedule",
+      });
+    }
+
+    // Step 3: Fetch Course details (including subjects)
+    const course = await Course.findById(courseId)
+      .populate("subjects", "name")
+      .lean();
+    if (!course) {
+      return res.status(404).json({
+        success: false,
+        message: "Course not found",
+      });
+    }
+
+    // Step 4: Fetch Batch details
+    const batch = await batchSchema.findById(batchId).lean();
+    if (!batch) {
+      return res.status(404).json({
+        success: false,
+        message: "Batch not found",
+      });
+    }
+
+    // Step 5: Fetch Enrollments (filter by batch, course, and year)
+    const enrollments = await Enrollment.find({
+      courseId,
+      batchId,
+      year: schedule.year,
+    })
+      .populate("studentId")
+      .populate("studycenterId")
+      .lean();
+
+    // if (enrollments.length === 0) {
+    //   return res.status(404).json({
+    //     success: false,
+    //     message: "No enrolled students found for this batch and course",
+    //   });
+    // }
+
+    // Step 6: Prepare response data
+    const resultData = enrollments.map((enroll) => {
+      const student = enroll.studentId;
+      const studycenter = enroll.studycenterId;
+
+      // Check for changed center
+      const changedCenter = schedule.changedCenters.find(
+        (c) => c.centerId?.toString() === studycenter._id.toString()
+      );
+
+      return {
+        admissionNumber: enroll.admissionNumber,
+        name: student.name,
+        studyCenterName: studycenter.name,
+        examCenterName: changedCenter?.newLocation || studycenter.name,
+        courseName: course.name,
+        duration: course.duration,
+        dateOfExam: schedule.examDate,
+        subjects: course.subjects.map((s) => s.name),
+      };
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: resultData,
+    });
+  } catch (error) {
+    console.error("Error fetching result upload details:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
   }
 };

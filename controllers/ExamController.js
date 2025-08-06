@@ -309,4 +309,54 @@ export const deleteExamSchedule = async (req, res) => {
   }
 }
 
+export const getAllExamSchedules = async (req, res) => {
+  try {
+    const schedules = await ExamSchedule.find({})
+      .select("batches examDate examTime examName year")
+      .lean();
+
+    if (schedules.length === 0) {
+      return res
+        .status(200)
+        .json({ success: true, message: "No exam schedules found" });
+    }
+
+    const batchIds = schedules.flatMap((schedule) =>
+      schedule.batches.map((batchId) => batchId.toString())
+    );
+
+    const batches = await Batch.find({ _id: { $in: batchIds } })
+      .populate("courseId", "name")
+      .lean();
+
+    const batchMap = {};
+    batches.forEach((b) => {
+      batchMap[b._id.toString()] = {
+        batchId: b._id,
+        batchMonth: b.month,
+        courseId:b.courseId?._id,
+        courseName: b.courseId?.name || "Unknown",
+      };
+    });
+
+    const response = schedules.map((s) => ({
+      examScheduleId: s._id,
+      examName: s.examName,
+      year: s.year,
+      examDate: s.examDate,
+      examTime: s.examTime || "Not available",
+      batches: s.batches.map((batchId) => batchMap[batchId.toString()] || {}),
+    }));
+
+    return res.status(200).json({ success: true, data: response });
+  } catch (err) {
+    console.error("Error fetching all exam schedules:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch all exam schedules",
+    });
+  }
+};
+
+
 
