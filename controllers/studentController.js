@@ -516,7 +516,6 @@ export const updateStudentById = async (req, res) => {
 };
 
 
-
 export const getStudentsForResultUploadExcel = async (req, res) => {
   try {
     const { examScheduleId, courseId, batchId } = req.body;
@@ -596,8 +595,8 @@ export const getStudentsForResultUploadExcel = async (req, res) => {
         courseName: course.name,
         duration: course.duration,
         dateOfExam: schedule.examDate,
-        grade: "",
-        remark:"" 
+        grade: "", 
+        remark:""   
       };
     });
 

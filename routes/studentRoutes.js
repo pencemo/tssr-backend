@@ -10,7 +10,7 @@ router.get("/getOneStudent", isAuthenticated, getOneStudent);
 router.post("/getStudentsForDl", isAuthenticated, reportDownloadAccess, getStudentsForDl);
 router.post("/getAllStudentForAdmin", getAllStudentsDownloadForAdmin);
 router.post("/editStudentDetails", updateStudentById);
-router.get(
+router.post(
   "/getStudentDetailsForResultUploadExcel",
   getStudentsForResultUploadExcel
 );
