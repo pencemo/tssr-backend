@@ -1,5 +1,6 @@
 import enrollmentSchema from "../models/enrollmentSchema.js";
 import resultSchema from "../models/resultSchema.js";
+import Student from "../models/studentSchema.js";
 
 export const storeResultFromExcel = async (req, res) => {
   try {
@@ -169,3 +170,78 @@ export const deleteResults = async (req, res) => {
   }
 };
 
+
+export const fetchResult = async (req, res) => {
+  try {
+    const { admissionNumber, dob } = req.body;
+
+    if (!admissionNumber) {
+      return res.status(400).json({
+        success: false,
+        message: "Admission number is required",
+      });
+    }
+
+    const enrollment = await enrollmentSchema.findOne({ admissionNumber });
+    if (!enrollment) {
+      return res.status(404).json({
+        success: false,
+        message: "Student enrollment not found",
+      });
+    }
+
+    const result = await resultSchema.findOne({ admissionNumber }).sort({ createdAt: -1 });
+    if (!result) {
+      return res.status(404).json({
+        success: false,
+        message: "Result not found",
+      });
+    }
+
+    if (dob) {
+      const student = await Student.findById(enrollment.studentId);
+      if (!student) {
+        return res.status(404).json({
+          success: false,
+          message: "Student data not found",
+        });
+      }
+
+      const providedDOB = new Date(dob);
+      const actualDOB = new Date(student.dateOfBirth);
+
+      const toLocalDateString = (date) => {
+        return date.toLocaleDateString("en-CA"); 
+      };
+
+      const providedDate = toLocalDateString(providedDOB);
+      const actualDate = toLocalDateString(actualDOB);
+
+      if (providedDate !== actualDate) {
+        return res.status(401).json({
+          success: false,
+          message: "Date of birth does not match our records",
+        });
+      }
+
+      const { subjects, ...filteredResult } = result.toObject();
+      return res.status(200).json({
+        success: true,
+        message: "Result fetched successfully",
+        data: filteredResult,
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Result fetched successfully",
+      data: result,
+    });
+  } catch (error) {
+    console.error("Error fetching result:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+};

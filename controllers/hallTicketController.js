@@ -46,8 +46,8 @@ export const hallTicketDownload = async (req, res) => {
         const providedDate = toLocalDateString(providedDOB);
         const actualDate = toLocalDateString(actualDOB);
 
-        console.log("Provided Date:", providedDate);
-        console.log("Actual Date:", actualDate);
+        // console.log("Provided Date:", providedDate);
+        // console.log("Actual Date:", actualDate);
 
         if (providedDate !== actualDate) {
           return res.status(401).json({

@@ -40,9 +40,9 @@ const approvalWaitingSchema = new Schema({
 });
 
 
-const Result = mongoose.model("ApprovalWaiting", approvalWaitingSchema);
+const ApprovalWaiting = mongoose.model("ApprovalWaiting", approvalWaitingSchema);
 
-export default Result;
+export default ApprovalWaiting;
 
 
 
