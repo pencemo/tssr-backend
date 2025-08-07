@@ -1,9 +1,9 @@
+import enrollmentSchema from "../models/enrollmentSchema.js";
 import resultSchema from "../models/resultSchema.js";
 
 export const storeResultFromExcel = async (req, res) => {
   try {
     const resultsArray = req.body;
-    console.log("req.body;,",req.body)
 
     if (!Array.isArray(resultsArray) || resultsArray.length === 0) {
       return res.status(400).json({
@@ -12,7 +12,9 @@ export const storeResultFromExcel = async (req, res) => {
       });
     }
 
-    const parsedResults = resultsArray.map((resultData) => {
+    const createdResults = [];
+
+    for (const resultData of resultsArray) {
       const {
         admissionNumber,
         name,
@@ -45,7 +47,7 @@ export const storeResultFromExcel = async (req, res) => {
         grade: subject.grade?.trim(),
       }));
 
-      return {
+      const newResult = await resultSchema.create({
         admissionNumber,
         studentName: name,
         studyCenterName,
@@ -56,21 +58,114 @@ export const storeResultFromExcel = async (req, res) => {
         grade,
         remark,
         subjects: parsedSubjects,
-      };
-    });
+      });
 
-    const createdResults = await resultSchema.create(parsedResults); 
+      createdResults.push(newResult);
+
+      const enrollment = await enrollmentSchema.findOne({ admissionNumber });
+
+      if (enrollment) {
+        const isPassed = ["pass","passed"].includes(remark.trim().toLowerCase());
+
+        enrollment.isCompleted = true;
+        enrollment.isPassed = isPassed;
+        enrollment.isCertificateIssued = isPassed;
+
+        await enrollment.save();
+
+      }
+    }
 
     return res.status(201).json({
       success: true,
-      message: "All results uploaded successfully.",
+      message: "All results uploaded and enrollments updated successfully.",
       data: createdResults,
     });
   } catch (error) {
     console.error("Error uploading results:", error.message);
     return res.status(500).json({
       success: false,
-      message: "Server error while uploading multiple results.",
+      message: "Server error while uploading results and updating enrollments.",
+      error: error.message,
     });
   }
 };
+
+
+export const fetchAllResults = async (req, res) => {
+  try {
+    const { search = "", page = 1, limit = 10 } = req.query;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    const query = {
+      $or: [
+        { studentName: { $regex: search, $options: "i" } },
+        { admissionNumber: { $regex: search, $options: "i" } },
+        { courseName: { $regex: search, $options: "i" } },
+        { examCenterName: { $regex: search, $options: "i" } },
+        { studyCenterName: { $regex: search, $options: "i" } },
+      ],
+    };
+
+    const resultsPromise = resultSchema
+      .find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    const countPromise = resultSchema.countDocuments(query);
+
+    const [results, total] = await Promise.all([resultsPromise, countPromise]);
+
+    res.status(200).json({
+      success: true,
+      total,
+      currentPage: parseInt(page),
+      totalPages: Math.ceil(total / parseInt(limit)),
+      data: results,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch results.",
+      error: error.message,
+    });
+  }
+};
+
+export const deleteResults = async (req, res) => {
+  try {
+    const { allDelete, resultIds } = req.body;
+
+    if (allDelete === true) {
+      await resultSchema.deleteMany({});
+      return res.status(200).json({
+        success: true,
+        message: "All results deleted successfully.",
+      });
+    }
+
+    if (!Array.isArray(resultIds) || resultIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide an array of IDs to delete.",
+      });
+    }
+
+    const deleted = await resultSchema.deleteMany({ _id: { $in: resultIds } });
+    
+    return res.status(200).json({
+      success: true,
+      message: `${deleted.deletedCount} result(s) deleted successfully.`,
+    });
+
+  } catch (error) {
+    console.error("Error deleting results:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error while deleting results.",
+      error: error.message,
+    });
+  }
+};
+

@@ -39,6 +39,9 @@ export const hallTicketDownload = async (req, res) => {
       const providedDOB = new Date(dob).toDateString();
       const actualDOB = new Date(student.dateOfBirth).toDateString();
 
+      providedDOB.setUTCHours(0, 0, 0, 0);
+      actualDOB.setUTCHours(0, 0, 0, 0);
+
       if (providedDOB !== actualDOB) {
         return res.status(401).json({
           success: false,
