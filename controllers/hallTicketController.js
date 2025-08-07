@@ -35,23 +35,25 @@ export const hallTicketDownload = async (req, res) => {
       studycenterId: studyCenter,
     } = enrollment;
 
-    if (dob) {
-      const providedDOB = new Date(dob)
-      const actualDOB = new Date(student.dateOfBirth)
+if (dob) {
+  const providedDOB = new Date(dob);
+  const actualDOB = new Date(student.dateOfBirth);
 
-      providedDOB.setUTCHours(0, 0, 0, 0);
-      actualDOB.setUTCHours(0, 0, 0, 0);
+  const providedDate = providedDOB.toISOString().split("T")[0];
+  const actualDate = actualDOB.toISOString().split("T")[0];
 
-      console.log("Provided DOB:", providedDOB);
-      console.log("Actual DOB:", actualDOB);
+  console.log("Provided Date:", providedDate);
+  console.log("Actual Date:", actualDate);
 
-      if (providedDOB.getTime() != actualDOB.getTime()) {
-        return res.status(401).json({
-          success: false,
-          message: "Date of birth does not match our records",
-        });
-      }
+  if (providedDate !== actualDate) {
+    return res.status(401).json({
+      success: false,
+      message: "Date of birth does not match our records",
+    });
+  }
     }
+    
+
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);

@@ -7,3 +7,4 @@ router.get("/getAllResults", fetchAllResults);
 router.post("/deleteResult",deleteResults);
 
 export default router;
+
