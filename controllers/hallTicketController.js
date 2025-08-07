@@ -35,23 +35,28 @@ export const hallTicketDownload = async (req, res) => {
       studycenterId: studyCenter,
     } = enrollment;
 
-if (dob) {
-  const providedDOB = new Date(dob);
-  const actualDOB = new Date(student.dateOfBirth);
+      if (dob) {
+        const providedDOB = new Date(dob);
+        const actualDOB = new Date(student.dateOfBirth);
 
-  const providedDate = providedDOB.toISOString().split("T")[0];
-  const actualDate = actualDOB.toISOString().split("T")[0];
+        const toLocalDateString = (date) => {
+          return date.toLocaleDateString("en-CA");
+        };
 
-  console.log("Provided Date:", providedDate);
-  console.log("Actual Date:", actualDate);
+        const providedDate = toLocalDateString(providedDOB);
+        const actualDate = toLocalDateString(actualDOB);
 
-  if (providedDate !== actualDate) {
-    return res.status(401).json({
-      success: false,
-      message: "Date of birth does not match our records",
-    });
-  }
-    }
+        console.log("Provided Date:", providedDate);
+        console.log("Actual Date:", actualDate);
+
+        if (providedDate !== actualDate) {
+          return res.status(401).json({
+            success: false,
+            message: "Date of birth does not match our records",
+          });
+        }
+      }
+
     
 
 
