@@ -1,6 +1,7 @@
 import enrollmentSchema from "../models/enrollmentSchema.js";
 import resultSchema from "../models/resultSchema.js";
 import Student from "../models/studentSchema.js";
+import { normalizeDobToUTC } from "../utils/DOBConvertion.js";
 
 export const storeResultFromExcel = async (req, res) => {
   try {
@@ -29,7 +30,10 @@ export const storeResultFromExcel = async (req, res) => {
         remark,
         dateOfExam,
         subjects,
+        examName,
       } = resultData;
+
+      console.log("examName :", examName);
 
       if (
         !admissionNumber ||
@@ -55,6 +59,7 @@ export const storeResultFromExcel = async (req, res) => {
         studentName: name,
         studyCenterName,
         examCenterName,
+        examName,
         courseName,
         duration,
         dateOfExam,
@@ -209,39 +214,46 @@ export const  fetchResult = async (req, res) => {
       });
     }
 
-    if (dob) {
-      const student = await Student.findById(enrollment.studentId);
-      if (!student) {
-        return res.status(404).json({
-          success: false,
-          message: "Student data not found",
-        });
-      }
+if (dob) {
+  const student = await Student.findById(enrollment.studentId);
+  if (!student) {
+    return res.status(404).json({
+      success: false,
+      message: "Student data not found",
+    });
+  }
 
-      const providedDOB = new Date(dob);
-      const actualDOB = new Date(student.dateOfBirth);
+  const providedDOB = new Date(normalizeDobToUTC(dob));
+  const actualDOB = new Date(student.dateOfBirth);
 
-      const toLocalDateString = (date) => {
-        return date.toLocaleDateString("en-CA"); 
-      };
+  const formatUTCDate = (date) => {
+    const year = date.getUTCFullYear();
+    const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+    const day = String(date.getUTCDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
 
-      const providedDate = toLocalDateString(providedDOB);
-      const actualDate = toLocalDateString(actualDOB);
+  const providedDate = formatUTCDate(providedDOB);
+  const actualDate = formatUTCDate(actualDOB);
 
-      if (providedDate !== actualDate) {
-        return res.status(401).json({
-          success: false,
-          message: "Date of birth does not match our records",
-        });
-      }
+  console.log("Provided Date (UTC):", providedDate);
+  console.log("Actual Date (UTC):", actualDate);
 
-      const { subjects, ...filteredResult } = result.toObject();
-      return res.status(200).json({
-        success: true,
-        message: "Result fetched successfully",
-        data: filteredResult,
-      });
-    }
+  if (providedDate !== actualDate) {
+    return res.status(401).json({
+      success: false,
+      message: "Date of birth does not match our records",
+    });
+  }
+
+  const { subjects, ...filteredResult } = result.toObject();
+  return res.status(200).json({
+    success: true,
+    message: "Result fetched successfully",
+    data: filteredResult,
+  });
+}
+
 
     return res.status(200).json({
       success: true,

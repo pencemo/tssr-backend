@@ -48,6 +48,7 @@ export const hallTicketDownload = async (req, res) => {
           return `${year}-${month}-${day}`;
         };
 
+
         const providedDate = formatUTCDate(providedDOB);
         const actualDate = formatUTCDate(actualDOB);
 

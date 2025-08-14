@@ -26,6 +26,10 @@ const resultSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    examName: {
+      type: String,
+      required: true,
+    },
     dateOfExam: {
       type: String,
       required: true,
@@ -44,7 +48,7 @@ const resultSchema = new mongoose.Schema(
           name: { type: String },
           grade: { type: String },
         },
-        { _id: false } 
+        { _id: false }
       ),
     ],
   },

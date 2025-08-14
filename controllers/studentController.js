@@ -578,26 +578,28 @@ export const getStudentsForResultUploadExcel = async (req, res) => {
       });
     }
 
-    const resultData = enrollments.map((enroll) => {
-      const student = enroll.studentId;
-      const studycenter = enroll.studycenterId;
+const resultData = enrollments.map((enroll) => {
+  const student = enroll.studentId || {};
+  const studycenter = enroll.studycenterId || {};
 
-      const changedCenter = schedule.changedCenters.find(
-        (c) => c.centerId?.toString() === studycenter._id.toString()
-      );
+  const changedCenter = schedule?.changedCenters?.find(
+    (c) => c.centerId?.toString() === studycenter?._id?.toString()
+  );
 
-      return {
-        admissionNumber: enroll.admissionNumber,
-        name: student.name,
-        studyCenterName: studycenter.name,
-        examCenterName: changedCenter?.newLocation || studycenter.name,
-        courseName: course.name,
-        duration: course.duration,
-        dateOfExam: schedule.examDate,
-        grade: "", 
-        remark:""   
-      };
-    });
+  return {
+    admissionNumber: enroll?.admissionNumber || "N/A",
+    name: student?.name || "N/A",
+    examName: schedule?.examName || "N/A",
+    studyCenterName: studycenter?.name || "N/A",
+    examCenterName: changedCenter?.newLocation || studycenter?.name || "N/A",
+    courseName: course?.name || "N/A",
+    duration: course?.duration || "N/A",
+    dateOfExam: schedule?.examDate || null,
+    grade: "",
+    remark: "",
+  };
+});
+
 
     return res.status(200).json({
       success: true,
