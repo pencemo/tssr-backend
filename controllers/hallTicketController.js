@@ -4,11 +4,13 @@ import Enrollment from "../models/enrollmentSchema.js";
 import ExamSchedule from "../models/examScheduleSchema.js";
 import jwt from 'jsonwebtoken';
 import { getDurationFromTimeRange } from "../utils/getDurationFromTime.js";
+import { normalizeDobToUTC } from "../utils/DOBConvertion.js";
 
 
 export const hallTicketDownload = async (req, res) => {
   try {
     const { admissionNumber, dob } = req.body;
+    console.log(req.body);
 
     if (!admissionNumber) {
       return res.status(400).json({
@@ -36,7 +38,7 @@ export const hallTicketDownload = async (req, res) => {
     } = enrollment;
 
       if (dob) {
-        const providedDOB = new Date(dob);
+        const providedDOB = new Date(normalizeDobToUTC(dob));
         const actualDOB = new Date(student.dateOfBirth);
 
         const toLocalDateString = (date) => {
