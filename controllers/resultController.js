@@ -245,3 +245,39 @@ export const fetchResult = async (req, res) => {
     });
   }
 };
+
+export const verifyCertificate = async (req, res) => {
+  const {admissionNumber} = req.body
+  if(!admissionNumber){
+    return res.status(400).json({
+      success: false,
+      message: "Admission number is required",
+    });
+  }
+  try{
+    const Student = await enrollmentSchema.findOne({admissionNumber}).populate("studycenterId", "name").populate("studentId", "name dateOfBirth").populate("batchId", "month").populate("courseId", "name duration");
+    if(!Student){
+      return res.status(404).json({
+        success: false,
+        message: "Student not found"
+      })
+    }
+    if(!Student.isCompleted){
+      return res.status(404).json({
+        success: false,
+        message: "Student is not yet completed"
+      })
+    }
+    return res.status(200).json({
+      success: true,
+      message: "Student found",
+      data: Student
+    })
+  }catch(error){
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message
+    })
+  }
+}

@@ -15,8 +15,8 @@ export const passwordMiddleware = async(req, res, next) => {
          .status(404)
          .json({ message: "User not found", success: false });
      }
-     const user = await User.findById(req.user.id);
-     const isMatch = await bcrypt.compare(password, user.password);
+    //  const user = await User.findById(req.user.id);
+     const isMatch = await bcrypt.compare(password, admin.password);
      if (!isMatch) {
        return res
          .status(400)
