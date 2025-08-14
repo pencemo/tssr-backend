@@ -6,6 +6,7 @@ import enrollmentSchema from "../models/enrollmentSchema.js";
 import { excelSerialToDate } from "../utils/excelDateTojsonDate.js";
 import ApprovalWaiting from '../models/approvalWaitingSchema.js'
 import mongoose from "mongoose";
+import { normalizeDobToUTC } from "../utils/DOBConvertion.js";
 
 export const checkEnrollmentByAdhar = async (req, res) => {
   try {
@@ -122,11 +123,14 @@ export const createStudentWithEnrollment = async (req, res) => {
     const studyCenterId = req.user.studycenterId;
     const studentData = req.body.student;
     const course = req.body.course;
+    const formatedDOB = normalizeDobToUTC(studentData.dateOfBirth);
+
+    console.log("dateOfBirth:", studentData.dateOfBirth);
+    console.log("formatedDOB:", formatedDOB);
 
     const {
       name,
       age,
-      dateOfBirth,
       gender,
       phoneNumber,
       place,
@@ -162,7 +166,7 @@ if (!student) {
   const newStudent = new Student({
     name,
     age,
-    dateOfBirth,
+    dateOfBirth:formatedDOB,
     gender,
     phoneNumber,
     place,
@@ -324,7 +328,6 @@ export const EnrollExcelStudents = async (req, res) => {
       if (!valid) continue;
 
       console.log("Date of Birth:", entry.dateOfBirth);
-
       const dob = excelSerialToDate(entry.dateOfBirth);
       console.log("Converted DOB:", dob);
       const dobISO = new Date(dob).toISOString();

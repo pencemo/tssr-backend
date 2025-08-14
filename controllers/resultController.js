@@ -4,7 +4,9 @@ import Student from "../models/studentSchema.js";
 
 export const storeResultFromExcel = async (req, res) => {
   try {
-    const resultsArray = req.body;
+    const resultsArray = req.body.resultsArray;
+    const examType = req.body.examType;
+    console.log("Final Exam :", req.body);
 
     if (!Array.isArray(resultsArray) || resultsArray.length === 0) {
       return res.status(400).json({
@@ -65,15 +67,16 @@ export const storeResultFromExcel = async (req, res) => {
 
       const enrollment = await enrollmentSchema.findOne({ admissionNumber });
 
-      if (enrollment) {
-        const isPassed = ["pass","passed"].includes(remark.trim().toLowerCase());
+      if (enrollment && examType === "final") {
+        const isPassed = ["pass", "passed"].includes(
+          remark.trim().toLowerCase()
+        );
 
         enrollment.isCompleted = true;
         enrollment.isPassed = isPassed;
         enrollment.isCertificateIssued = isPassed;
 
         await enrollment.save();
-
       }
     }
 
@@ -92,21 +95,24 @@ export const storeResultFromExcel = async (req, res) => {
   }
 };
 
-
 export const fetchAllResults = async (req, res) => {
   try {
-    const { search = "", page = 1, limit = 10 } = req.query;
+    const { search = "", page = 1, limit = 10 , filter = ""} = req.query;
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
     const query = {
       $or: [
         { studentName: { $regex: search, $options: "i" } },
         { admissionNumber: { $regex: search, $options: "i" } },
-        { courseName: { $regex: search, $options: "i" } },
-        { examCenterName: { $regex: search, $options: "i" } },
         { studyCenterName: { $regex: search, $options: "i" } },
       ],
     };
+
+    if (filter) {
+      query.courseName = { $regex: filter, $options: "i" };
+    }
+
+    console.log("Query  :", query);
 
     const resultsPromise = resultSchema
       .find(query)
@@ -115,8 +121,13 @@ export const fetchAllResults = async (req, res) => {
       .limit(parseInt(limit));
 
     const countPromise = resultSchema.countDocuments(query);
+     const coursesPromise = resultSchema.distinct("courseName");
 
-    const [results, total] = await Promise.all([resultsPromise, countPromise]);
+    const [results, total, courses] = await Promise.all([
+      resultsPromise,
+      countPromise,
+      coursesPromise,
+    ]);
 
     res.status(200).json({
       success: true,
@@ -124,6 +135,7 @@ export const fetchAllResults = async (req, res) => {
       currentPage: parseInt(page),
       totalPages: Math.ceil(total / parseInt(limit)),
       data: results,
+      courses,
     });
   } catch (error) {
     res.status(500).json({
@@ -169,7 +181,6 @@ export const deleteResults = async (req, res) => {
     });
   }
 };
-
 
 export const  fetchResult = async (req, res) => {
   try {
@@ -246,7 +257,38 @@ export const  fetchResult = async (req, res) => {
   }
 };
 
-
-
-
-
+export const verifyCertificate = async (req, res) => {
+  const {admissionNumber} = req.body
+  if(!admissionNumber){
+    return res.status(400).json({
+      success: false,
+      message: "Admission number is required",
+    });
+  }
+  try{
+    const Student = await enrollmentSchema.findOne({admissionNumber}).populate("studycenterId", "name").populate("studentId", "name dateOfBirth").populate("batchId", "month").populate("courseId", "name duration");
+    if(!Student){
+      return res.status(404).json({
+        success: false,
+        message: "Student not found"
+      })
+    }
+    if(!Student.isCompleted){
+      return res.status(404).json({
+        success: false,
+        message: "Student is not yet completed"
+      })
+    }
+    return res.status(200).json({
+      success: true,
+      message: "Student found",
+      data: Student
+    })
+  }catch(error){
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message
+    })
+  }
+}

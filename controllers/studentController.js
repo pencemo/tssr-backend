@@ -6,6 +6,7 @@ import Course from "../models/courseSchema.js";
 import batchSchema from "../models/batchSchema.js";
 import StudyCenter from "../models/studyCenterSchema.js";
 import ExamSchedule from "../models/examScheduleSchema.js";
+import { normalizeDobToUTC } from "../utils/DOBConvertion.js";
 
 export const getStudyCenterStudents = async (req, res) => {
   const user = req.user;
@@ -452,9 +453,7 @@ export const updateStudentById = async (req, res) => {
       name: restData.name,
       age: restData.age,
       gender: restData.gender,
-      dateOfBirth: restData.dateOfBirth
-        ? new Date(restData.dateOfBirth)
-        : undefined,
+      dateOfBirth: restData.dateOfBirth? normalizeDobToUTC(new Date(restData.dateOfBirth)) : undefined,
       phoneNumber: restData.phoneNumber,
       email: restData.email,
       place: restData.place,
