@@ -171,7 +171,7 @@ export const deleteResults = async (req, res) => {
 };
 
 
-export const fetchResult = async (req, res) => {
+export const  fetchResult = async (req, res) => {
   try {
     const { admissionNumber, dob } = req.body;
 
@@ -245,3 +245,8 @@ export const fetchResult = async (req, res) => {
     });
   }
 };
+
+
+
+
+
