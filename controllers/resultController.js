@@ -49,7 +49,7 @@ export const storeResultFromExcel = async (req, res) => {
 
       const parsedSubjects = subjects.map((subject) => ({
         name: subject.name?.trim(),
-        grade: subject.grade?.trim(),
+        grade: subject.grade
       }));
 
       const newResult = await resultSchema.create({
