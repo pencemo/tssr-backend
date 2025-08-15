@@ -126,7 +126,6 @@ export const editAdmissionStatus = async (req, res) => {
   const { batchId } = req.query;
   const { date ,year } = req.body;
   try {
-    // Validate date input
     if (!date || !date.from || !date.to) {
       return res.status(400).json({
         success: false,
@@ -137,7 +136,6 @@ export const editAdmissionStatus = async (req, res) => {
     const startDate = getDateOnlyFromDate(new Date(date.from));
     const endDate = getDateOnlyFromDate(new Date(date.to));
 
-    // Find the batch by ID
     const batch = await Batch.findById(batchId);
 
     if (!batch) {
@@ -147,7 +145,6 @@ export const editAdmissionStatus = async (req, res) => {
       });
     }
 
-    // Update the batch
     batch.isAdmissionStarted = true;
     batch.startDate = startDate;
     batch.endDate = endDate;
@@ -173,7 +170,6 @@ export const updateBatchDates = async (req, res) => {
   try {
     const { month, date, year } = req.body;
 
-    // Validate required fields
     if (!month || !date || !date.from || !date.to) {
       return res.status(400).json({
         success: false,
@@ -181,11 +177,9 @@ export const updateBatchDates = async (req, res) => {
       });
     }
 
-    // Convert to Date objects and remove time
-    const startDate = getDateOnlyFromDate(new Date(date.from));
-    const endDate = getDateOnlyFromDate(new Date(date.to));
+    const startDate = new Date(date.from);
+    const endDate = new Date(date.to);
 
-    // Case-insensitive match for month
     const monthRegex = new RegExp(`^${month}$`, "i");
 
     // Step 1: Update batches
@@ -265,6 +259,7 @@ export const getAdmissionOpenedBatches = async (req, res) => {
   const search = req.query.search || "";
   const perPage = 10;
   const currentDate = new Date();
+
 
   try {
     const batches = await Batch.find().populate("courseId", "name category duration");

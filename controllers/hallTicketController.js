@@ -10,7 +10,6 @@ import { normalizeDobToUTC } from "../utils/DOBConvertion.js";
 export const hallTicketDownload = async (req, res) => {
   try {
     const { admissionNumber, dob } = req.body;
-    console.log(req.body);
 
     if (!admissionNumber) {
       return res.status(400).json({
@@ -52,8 +51,6 @@ export const hallTicketDownload = async (req, res) => {
         const providedDate = formatUTCDate(providedDOB);
         const actualDate = formatUTCDate(actualDOB);
 
-        console.log("Provided Date (UTC):", providedDate);
-        console.log("Actual Date (UTC):", actualDate);
 
         if (providedDate !== actualDate) {
           return res.status(401).json({

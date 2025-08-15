@@ -7,7 +7,6 @@ export const storeResultFromExcel = async (req, res) => {
   try {
     const resultsArray = req.body.resultsArray;
     const examType = req.body.examType;
-    console.log("Final Exam :", req.body);
 
     if (!Array.isArray(resultsArray) || resultsArray.length === 0) {
       return res.status(400).json({
@@ -33,7 +32,6 @@ export const storeResultFromExcel = async (req, res) => {
         examName,
       } = resultData;
 
-      console.log("examName :", examName);
 
       if (
         !admissionNumber ||
@@ -117,7 +115,7 @@ export const fetchAllResults = async (req, res) => {
       query.courseName = { $regex: filter, $options: "i" };
     }
 
-    console.log("Query  :", query);
+
 
     const resultsPromise = resultSchema
       .find(query)
@@ -236,8 +234,6 @@ if (dob) {
   const providedDate = formatUTCDate(providedDOB);
   const actualDate = formatUTCDate(actualDOB);
 
-  console.log("Provided Date (UTC):", providedDate);
-  console.log("Actual Date (UTC):", actualDate);
 
   if (providedDate !== actualDate) {
     return res.status(401).json({

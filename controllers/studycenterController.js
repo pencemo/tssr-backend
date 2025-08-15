@@ -110,7 +110,6 @@ export const addStudyCenter = async (req, res) => {
 
     const savedCenter = await newStudyCenter.save();
 
-    console.log("savedCenter", savedCenter);
 
     // === Create related User ===
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -128,7 +127,6 @@ export const addStudyCenter = async (req, res) => {
     });
 
     await newUser.save();
-    console.log("newUser", newUser);
 
     res.status(201).json({
       success: true,
@@ -152,7 +150,6 @@ export const getVerifiedActiveStudyCenters = async (req, res) => {
 
     const searchQuery = req.query.search || "";
 
-    console.log("req.query :", req.query);
 
     // Build the search condition
     const searchCondition = searchQuery
@@ -169,7 +166,7 @@ export const getVerifiedActiveStudyCenters = async (req, res) => {
     // Final query condition
     const queryCondition = {
       isApproved: true,
-      // renewalDate: { $gt: currentDate },
+      renewalDate: { $gt: currentDate },
       ...searchCondition,
     }; 
 

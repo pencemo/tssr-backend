@@ -133,7 +133,8 @@ export const getScheduledExamBatches = async (req, res) => {
       "examDate.to": { $gte: today },
     })
       .select("batches examDate examTime examName year")
-      .lean();
+      .lean()
+      .sort({ "examDate.to": 1 });
 
     if (schedules.length == 0) {
       return res.status(200).json({ success: true, message:"No batch is schedules" });
