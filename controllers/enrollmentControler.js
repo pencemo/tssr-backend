@@ -6,6 +6,7 @@ import enrollmentSchema from "../models/enrollmentSchema.js";
 import { excelSerialToDate } from "../utils/excelDateTojsonDate.js";
 import ApprovalWaiting from '../models/approvalWaitingSchema.js'
 import mongoose from "mongoose";
+import { normalizeDobToUTC } from "../utils/DOBConvertion.js";
 
 export const checkEnrollmentByAdhar = async (req, res) => {
   try {
@@ -116,17 +117,17 @@ export const checkEnrollmentByAdhar = async (req, res) => {
   }
 };
 
-// for Single student
 export const createStudentWithEnrollment = async (req, res) => {
   try {
     const studyCenterId = req.user.studycenterId;
     const studentData = req.body.student;
     const course = req.body.course;
+    const formatedDOB = normalizeDobToUTC(studentData.dateOfBirth);
+
 
     const {
       name,
       age,
-      dateOfBirth,
       gender,
       phoneNumber,
       place,
@@ -162,7 +163,7 @@ if (!student) {
   const newStudent = new Student({
     name,
     age,
-    dateOfBirth,
+    dateOfBirth:formatedDOB,
     gender,
     phoneNumber,
     place,
@@ -242,6 +243,9 @@ export const EnrollExcelStudents = async (req, res) => {
     for (const entry of data) {
       const adhaar = entry.adhaarNumber?.toString().trim();
 
+
+
+
       if (aadhaarSeen.has(adhaar)) {
         unavailableStudents.push({
           ...entry,
@@ -258,6 +262,18 @@ export const EnrollExcelStudents = async (req, res) => {
           reason: "Invalid Aadhaar number",
         });
         continue;
+      }
+
+      if (entry.dateOfBirth) {
+        const isNumber = !isNaN(Number(entry.dateOfBirth));
+
+        if (!isNumber) {
+          unavailableStudents.push({
+            ...entry,
+            reason: "Invalid Date of Birth format in sheet.",
+          });
+          continue;
+        }
       }
 
       const student = await Student.findOne({ adhaarNumber: adhaar });
@@ -323,12 +339,8 @@ export const EnrollExcelStudents = async (req, res) => {
       }
       if (!valid) continue;
 
-      console.log("Date of Birth:", entry.dateOfBirth);
-
       const dob = excelSerialToDate(entry.dateOfBirth);
-      console.log("Converted DOB:", dob);
       const dobISO = new Date(dob).toISOString();
-      console.log("DOB ISO String:", dobISO);
       if (!/^\d{4}-\d{2}-\d{2}T/.test(dobISO)) {
         unavailableStudents.push({ ...entry, reason: "Invalid DOB format" });
         continue;
@@ -420,7 +432,6 @@ export const bulkEnrollStudents = async (req, res) => {
       const pinPart = student.pincode?.toString().slice(-3) || "000";
       const customStudentId = `${namePart}/${phonePart}/${pinPart}`;
 
-      console.log("student DOB :", student.dateOfBirth);
 
       const newStudent = await Student.create(
         [

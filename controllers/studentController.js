@@ -6,6 +6,7 @@ import Course from "../models/courseSchema.js";
 import batchSchema from "../models/batchSchema.js";
 import StudyCenter from "../models/studyCenterSchema.js";
 import ExamSchedule from "../models/examScheduleSchema.js";
+import { normalizeDobToUTC } from "../utils/DOBConvertion.js";
 
 export const getStudyCenterStudents = async (req, res) => {
   const user = req.user;
@@ -452,9 +453,7 @@ export const updateStudentById = async (req, res) => {
       name: restData.name,
       age: restData.age,
       gender: restData.gender,
-      dateOfBirth: restData.dateOfBirth
-        ? new Date(restData.dateOfBirth)
-        : undefined,
+      dateOfBirth: restData.dateOfBirth? normalizeDobToUTC(new Date(restData.dateOfBirth)) : undefined,
       phoneNumber: restData.phoneNumber,
       email: restData.email,
       place: restData.place,
@@ -579,26 +578,28 @@ export const getStudentsForResultUploadExcel = async (req, res) => {
       });
     }
 
-    const resultData = enrollments.map((enroll) => {
-      const student = enroll.studentId;
-      const studycenter = enroll.studycenterId;
+const resultData = enrollments.map((enroll) => {
+  const student = enroll.studentId || {};
+  const studycenter = enroll.studycenterId || {};
 
-      const changedCenter = schedule.changedCenters.find(
-        (c) => c.centerId?.toString() === studycenter._id.toString()
-      );
+  const changedCenter = schedule?.changedCenters?.find(
+    (c) => c.centerId?.toString() === studycenter?._id?.toString()
+  );
 
-      return {
-        admissionNumber: enroll.admissionNumber,
-        name: student.name,
-        studyCenterName: studycenter.name,
-        examCenterName: changedCenter?.newLocation || studycenter.name,
-        courseName: course.name,
-        duration: course.duration,
-        dateOfExam: schedule.examDate,
-        grade: "", 
-        remark:""   
-      };
-    });
+  return {
+    admissionNumber: enroll?.admissionNumber || "N/A",
+    name: student?.name || "N/A",
+    examName: schedule?.examName || "N/A",
+    studyCenterName: studycenter?.name || "N/A",
+    examCenterName: changedCenter?.newLocation || studycenter?.name || "N/A",
+    courseName: course?.name || "N/A",
+    duration: course?.duration || "N/A",
+    dateOfExam: schedule?.examDate || null,
+    grade: "",
+    remark: "",
+  };
+});
+
 
     return res.status(200).json({
       success: true,

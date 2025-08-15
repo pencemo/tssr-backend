@@ -1,10 +1,12 @@
 import enrollmentSchema from "../models/enrollmentSchema.js";
 import resultSchema from "../models/resultSchema.js";
 import Student from "../models/studentSchema.js";
+import { normalizeDobToUTC } from "../utils/DOBConvertion.js";
 
 export const storeResultFromExcel = async (req, res) => {
   try {
-    const resultsArray = req.body;
+    const resultsArray = req.body.resultsArray;
+    const examType = req.body.examType;
 
     if (!Array.isArray(resultsArray) || resultsArray.length === 0) {
       return res.status(400).json({
@@ -27,7 +29,9 @@ export const storeResultFromExcel = async (req, res) => {
         remark,
         dateOfExam,
         subjects,
+        examName,
       } = resultData;
+
 
       if (
         !admissionNumber ||
@@ -53,6 +57,7 @@ export const storeResultFromExcel = async (req, res) => {
         studentName: name,
         studyCenterName,
         examCenterName,
+        examName,
         courseName,
         duration,
         dateOfExam,
@@ -65,15 +70,16 @@ export const storeResultFromExcel = async (req, res) => {
 
       const enrollment = await enrollmentSchema.findOne({ admissionNumber });
 
-      if (enrollment) {
-        const isPassed = ["pass","passed"].includes(remark.trim().toLowerCase());
+      if (enrollment && examType === "final") {
+        const isPassed = ["pass", "passed"].includes(
+          remark.trim().toLowerCase()
+        );
 
         enrollment.isCompleted = true;
         enrollment.isPassed = isPassed;
         enrollment.isCertificateIssued = isPassed;
 
         await enrollment.save();
-
       }
     }
 
@@ -92,21 +98,24 @@ export const storeResultFromExcel = async (req, res) => {
   }
 };
 
-
 export const fetchAllResults = async (req, res) => {
   try {
-    const { search = "", page = 1, limit = 10 } = req.query;
+    const { search = "", page = 1, limit = 10 , filter = ""} = req.query;
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
     const query = {
       $or: [
         { studentName: { $regex: search, $options: "i" } },
         { admissionNumber: { $regex: search, $options: "i" } },
-        { courseName: { $regex: search, $options: "i" } },
-        { examCenterName: { $regex: search, $options: "i" } },
         { studyCenterName: { $regex: search, $options: "i" } },
       ],
     };
+
+    if (filter) {
+      query.courseName = { $regex: filter, $options: "i" };
+    }
+
+
 
     const resultsPromise = resultSchema
       .find(query)
@@ -115,8 +124,13 @@ export const fetchAllResults = async (req, res) => {
       .limit(parseInt(limit));
 
     const countPromise = resultSchema.countDocuments(query);
+     const coursesPromise = resultSchema.distinct("courseName");
 
-    const [results, total] = await Promise.all([resultsPromise, countPromise]);
+    const [results, total, courses] = await Promise.all([
+      resultsPromise,
+      countPromise,
+      coursesPromise,
+    ]);
 
     res.status(200).json({
       success: true,
@@ -124,6 +138,7 @@ export const fetchAllResults = async (req, res) => {
       currentPage: parseInt(page),
       totalPages: Math.ceil(total / parseInt(limit)),
       data: results,
+      courses,
     });
   } catch (error) {
     res.status(500).json({
@@ -170,8 +185,7 @@ export const deleteResults = async (req, res) => {
   }
 };
 
-
-export const fetchResult = async (req, res) => {
+export const  fetchResult = async (req, res) => {
   try {
     const { admissionNumber, dob } = req.body;
 
@@ -198,39 +212,44 @@ export const fetchResult = async (req, res) => {
       });
     }
 
-    if (dob) {
-      const student = await Student.findById(enrollment.studentId);
-      if (!student) {
-        return res.status(404).json({
-          success: false,
-          message: "Student data not found",
-        });
-      }
+if (dob) {
+  const student = await Student.findById(enrollment.studentId);
+  if (!student) {
+    return res.status(404).json({
+      success: false,
+      message: "Student data not found",
+    });
+  }
 
-      const providedDOB = new Date(dob);
-      const actualDOB = new Date(student.dateOfBirth);
+  const providedDOB = new Date(normalizeDobToUTC(dob));
+  const actualDOB = new Date(student.dateOfBirth);
 
-      const toLocalDateString = (date) => {
-        return date.toLocaleDateString("en-CA"); 
-      };
+  const formatUTCDate = (date) => {
+    const year = date.getUTCFullYear();
+    const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+    const day = String(date.getUTCDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
 
-      const providedDate = toLocalDateString(providedDOB);
-      const actualDate = toLocalDateString(actualDOB);
+  const providedDate = formatUTCDate(providedDOB);
+  const actualDate = formatUTCDate(actualDOB);
 
-      if (providedDate !== actualDate) {
-        return res.status(401).json({
-          success: false,
-          message: "Date of birth does not match our records",
-        });
-      }
 
-      const { subjects, ...filteredResult } = result.toObject();
-      return res.status(200).json({
-        success: true,
-        message: "Result fetched successfully",
-        data: filteredResult,
-      });
-    }
+  if (providedDate !== actualDate) {
+    return res.status(401).json({
+      success: false,
+      message: "Date of birth does not match our records",
+    });
+  }
+
+  const { subjects, ...filteredResult } = result.toObject();
+  return res.status(200).json({
+    success: true,
+    message: "Result fetched successfully",
+    data: filteredResult,
+  });
+}
+
 
     return res.status(200).json({
       success: true,

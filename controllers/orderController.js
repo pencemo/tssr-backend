@@ -159,7 +159,6 @@ export const getOrdersByStatus = async (req, res) => {
       data: filteredOrders,
     });
   } catch (error) {
-    console.log(error)
     res.status(500).json({ success: false, message: error.message });
   }
 };

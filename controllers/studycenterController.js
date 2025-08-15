@@ -110,6 +110,7 @@ export const addStudyCenter = async (req, res) => {
 
     const savedCenter = await newStudyCenter.save();
 
+
     // === Create related User ===
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -148,6 +149,7 @@ export const getVerifiedActiveStudyCenters = async (req, res) => {
     const skip = (page - 1) * limit;
 
     const searchQuery = req.query.search || "";
+
 
     // Build the search condition
     const searchCondition = searchQuery

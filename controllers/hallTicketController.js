@@ -4,6 +4,7 @@ import Enrollment from "../models/enrollmentSchema.js";
 import ExamSchedule from "../models/examScheduleSchema.js";
 import jwt from 'jsonwebtoken';
 import { getDurationFromTimeRange } from "../utils/getDurationFromTime.js";
+import { normalizeDobToUTC } from "../utils/DOBConvertion.js";
 
 
 export const hallTicketDownload = async (req, res) => {
@@ -36,18 +37,20 @@ export const hallTicketDownload = async (req, res) => {
     } = enrollment;
 
       if (dob) {
-        const providedDOB = new Date(dob);
+        const providedDOB = new Date(normalizeDobToUTC(dob));
         const actualDOB = new Date(student.dateOfBirth);
 
-        const toLocalDateString = (date) => {
-          return date.toLocaleDateString("en-CA");
+        const formatUTCDate = (date) => {
+          const year = date.getUTCFullYear();
+          const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+          const day = String(date.getUTCDate()).padStart(2, "0");
+          return `${year}-${month}-${day}`;
         };
 
-        const providedDate = toLocalDateString(providedDOB);
-        const actualDate = toLocalDateString(actualDOB);
 
-        // console.log("Provided Date:", providedDate);
-        // console.log("Actual Date:", actualDate);
+        const providedDate = formatUTCDate(providedDOB);
+        const actualDate = formatUTCDate(actualDOB);
+
 
         if (providedDate !== actualDate) {
           return res.status(401).json({

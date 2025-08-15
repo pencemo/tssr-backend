@@ -144,7 +144,6 @@ export const updateAdminAndUserFields = async (req, res) => {
       data: user
     })
   } catch (error) {
-    console.log(error);
     return res.status(500).json({
       message: "Error updating admin fields",
       success: false,
