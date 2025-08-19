@@ -189,8 +189,6 @@ export const  fetchResult = async (req, res) => {
   try {
     const { admissionNumber, dob } = req.body;
 
-    console.log("Admission Number :", admissionNumber);
-    console.log("Date of Birth : ", dob);
 
     if (!admissionNumber) {
       return res.status(400).json({

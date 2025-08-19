@@ -19,17 +19,19 @@ export const getStudyCenterStudents = async (req, res) => {
       studycenterId = req.user.studycenterId;
     }
 
-    // Convert query parameters to numbers
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const year = req.query.year ? parseInt(req.query.year) : undefined;
 
     const { batchId, courseId, search = "" } = req.query;
 
-    // Convert string IDs to ObjectId
+    const normalizeBackslashes = (str) => str.replace(/\\\\/g, "\\");
+    const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const normalizedSearch = escapeRegex(normalizeBackslashes(search));
+    const searchRegex = new RegExp(normalizedSearch, "i");
+
     const toObjectId = (id) => (id ? new Types.ObjectId(id) : null);
 
-    // Base match stage for enrollments
     const matchStage = {};
     if (studycenterId) matchStage.studycenterId = toObjectId(studycenterId);
     if (batchId) matchStage.batchId = toObjectId(batchId);
@@ -37,10 +39,8 @@ export const getStudyCenterStudents = async (req, res) => {
     if (year) matchStage.year = year;
 
     const aggregationPipeline = [
-      // Initial match for enrollments
       { $match: matchStage },
 
-      // Lookup student details
       {
         $lookup: {
           from: "students",
@@ -51,7 +51,6 @@ export const getStudyCenterStudents = async (req, res) => {
       },
       { $unwind: { path: "$student", preserveNullAndEmptyArrays: false } },
 
-      // Lookup batch details
       {
         $lookup: {
           from: "batches",
@@ -62,7 +61,6 @@ export const getStudyCenterStudents = async (req, res) => {
       },
       { $unwind: { path: "$batch", preserveNullAndEmptyArrays: true } },
 
-      // Lookup course details
       {
         $lookup: {
           from: "courses",
@@ -73,7 +71,6 @@ export const getStudyCenterStudents = async (req, res) => {
       },
       { $unwind: { path: "$course", preserveNullAndEmptyArrays: true } },
 
-      // Lookup studycenter details
       {
         $lookup: {
           from: "studycenters",
@@ -84,7 +81,6 @@ export const getStudyCenterStudents = async (req, res) => {
       },
       { $unwind: { path: "$studycenter", preserveNullAndEmptyArrays: true } },
 
-      // Apply search filter after all lookups
       ...(search
         ? [
             {
@@ -92,14 +88,13 @@ export const getStudyCenterStudents = async (req, res) => {
                 $or: [
                   { "student.name": new RegExp(search, "i") },
                   { "student.phoneNumber": new RegExp(search, "i") },
-                  { admissionNumber: new RegExp(search, "i") },
+                  { admissionNumber: searchRegex },
                 ],
               },
             },
           ]
         : []),
 
-      // Group by student only when not searching
       ...(!search
         ? [
             {
@@ -113,10 +108,8 @@ export const getStudyCenterStudents = async (req, res) => {
             },
           ]
         : []),
-      // After $replaceRoot:
       { $sort: { admissionNumber: -1 } },
 
-      // Project final fields
       {
         $project: {
           studentName: "$student.name",
@@ -133,7 +126,6 @@ export const getStudyCenterStudents = async (req, res) => {
         },
       },
 
-      // Pagination using facet
       {
         $facet: {
           metadata: [{ $count: "total" }],
