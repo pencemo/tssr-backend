@@ -207,7 +207,9 @@ export const getOneStudent = async (req, res) => {
         admissionNumber,
         studycenter: studycenterId?.name || "",
         batchMonth: batchId?.month || "",
-        ourseName: courseId?.name || "",
+        batchId: batchId?._id || "",
+        courseName: courseId?.name || "",
+        courseId: courseId?._id || "",
       };
     } else {
       // ✅ PENDING STUDENT
@@ -266,7 +268,9 @@ export const getOneStudent = async (req, res) => {
         studentId: student.studentId,
         studycenter: studycenter?.name || "",
         batchMonth: batch?.month || "",
+        batchId: batch?._id || "",
         courseName: course.name,
+        courseId: course?._id || "",
       };
     }
 
@@ -329,9 +333,10 @@ export const getStudentsForDl = async (req, res) => {
           return null;
         }
 
-        const { _id, ...studentData } = studentId._doc;
+        const { _id,name, ...studentData } = studentId._doc;
 
         return {
+          name: name?.toUpperCase() || "",
           ...studentData,
           year,
           enrolledDate,
@@ -408,10 +413,11 @@ export const getAllStudentsDownloadForAdmin = async (req, res) => {
 
       if (!en.studentId || !en.studentId._doc) continue;
 
-      const { _id, ...studentData } = en.studentId._doc;
+      const { _id, name, ...studentData } = en.studentId._doc;
 
       const formatted = {
         ...studentData,
+        name: name?.toUpperCase() || "",
         year: en.year,
         enrolledDate: en.enrolledDate,
         isCompleted: en.isCompleted ? "Completed" : "Not Completed",
@@ -450,7 +456,7 @@ export const updateStudentById = async (req, res) => {
     const isEnrolled = req.body.data.isEnrolled === "true";
 
     const updatedData = {
-      name: restData.name,
+      name: restData.name?.toUpperCase() || "",
       age: restData.age,
       gender: restData.gender,
       dateOfBirth: restData.dateOfBirth? normalizeDobToUTC(new Date(restData.dateOfBirth)) : undefined,
@@ -492,17 +498,31 @@ export const updateStudentById = async (req, res) => {
     }
 
     // ✅ If not enrolled, update approval status
-    if (!isEnrolled && approvalId) {
-      const approval = await ApprovalWaiting.findByIdAndUpdate(
-        approvalId,
-        { approvalStatus: "pending" },
-        { new: true }
-      );
-      if (!approval) {
-        return res
-          .status(404)
-          .json({ success: false, message: "Approval record not found" });
+    if(approvalId){
+      if (!isEnrolled) {
+        const approval = await ApprovalWaiting.findByIdAndUpdate(
+          approvalId,
+          { approvalStatus: "pending", courseId: restData?.courseId, batchId: restData?.batchId, year: restData?.year },
+          { new: true }
+        );
+        if (!approval) {
+          return res
+            .status(404)
+            .json({ success: false, message: "Approval record not found" });
+        }
+      }else{
+        const enrollment = await Enrollment.findByIdAndUpdate(
+          approvalId,
+          { courseId: restData?.courseId, batchId: restData?.batchId, year: restData?.year },
+          { new: true }
+        )
+        if(!enrollment){ 
+          return res
+            .status(404)
+            .json({ success: false, message: "Enrollment record not found" })
+        }
       }
+
     }
 
     return res.status(200).json({ success: true, student: updatedStudent });
@@ -588,7 +608,7 @@ const resultData = enrollments.map((enroll) => {
 
   return {
     admissionNumber: enroll?.admissionNumber || "N/A",
-    name: student?.name || "N/A",
+    name: student?.name?.toUpperCase() || "N/A",
     examName: schedule?.examName || "N/A",
     studyCenterName: studycenter?.name || "N/A",
     examCenterName: changedCenter?.newLocation || studycenter?.name || "N/A",

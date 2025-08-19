@@ -14,7 +14,7 @@ export const getAllCourses = async (req, res) => {
 
     if (isAdmin) {
       // Admin: fetch all active courses
-      courses = await Course.find({ isActive: true });
+      courses = await Course.find({ isActive: true }).sort({ name: 1 });
     } else {
       if (!studyCenterId) {
         return res.status(400).json({
@@ -42,7 +42,7 @@ export const getAllCourses = async (req, res) => {
       courses = await Course.find({
         _id: { $in: studyCenter.courses },
         isActive: true,
-      });
+      }).sort({ name: 1 })
     }
 
     return res.status(200).json({

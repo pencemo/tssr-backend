@@ -166,13 +166,13 @@ export const getVerifiedActiveStudyCenters = async (req, res) => {
     // Final query condition
     const queryCondition = {
       isApproved: true,
-      renewalDate: { $gt: currentDate },
+      // renewalDate: { $gt: currentDate },
       ...searchCondition,
     }; 
 
     const studyCenters = await StudyCenter.find(queryCondition)
       .populate("courses")
-      .sort({ createdAt: -1 })
+      .sort({ name: 1 })
       .skip(skip)
       .limit(limit);
 
@@ -370,7 +370,7 @@ export const updateStudyCenter = async (req, res) => {
 export const getAllStudyCenterForExcel = async (req, res) => {
   try {
     const studyCenters = await StudyCenter.find()
-      .sort({ createdAt: -1 })
+      .sort({ name: 1 })
       .select("-__v  -updatedAt")
       .populate("courses", "name -_id"); // this will replace _id with { _id, courseName }
 
@@ -394,7 +394,7 @@ export const getCoursesWithBatchesOfAStudyCenter = async (req, res) => {
   let results = [];
   try {
     if (user.isAdmin) {
-      const courses =await Course.find();
+      const courses =await Course.find().sort({ name: 1 });
       results = await Promise.all(
         courses.map(async (course) => {
           const batches = await Batch.find({ courseId: course._id }).select(
