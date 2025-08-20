@@ -65,19 +65,17 @@ export const checkEnrollmentByAdhar = async (req, res) => {
       });
     }
 
-    // Optional: courseId & batchId should be passed to check duplicates
-    if (courseId && batchId) {
+    if (courseId) {
       const alreadyEnrolled = await Enrollment.findOne({
         studentId: student._id,
         courseId,
-        batchId,
+        // batchId
         isCompleted: false,
       });
 
       const alreadyApplied = await ApprovalWaiting.findOne({
         studentId: student._id,
         courseId,
-        batchId,
         approvalStatus: "pending",
       });
       if (alreadyEnrolled || alreadyApplied) {
@@ -86,10 +84,10 @@ export const checkEnrollmentByAdhar = async (req, res) => {
             studentExists: true,
             enrolled: true,
             student,
-            message:
-              "Student has already enrolled or applied for this course in the selected batch.",
           },
           success: false,
+          message:
+            "Student has already enrolled or applied for this course in the selected batch.",
         });
       }
     }
@@ -99,9 +97,9 @@ export const checkEnrollmentByAdhar = async (req, res) => {
         studentExists: true,
         enrolled: false,
         student,
-        message: "Proceed with new Enrollment.",
       },
       success: true,
+      message: "Proceed with new Enrollment.",
     });
   } catch (error) {
     console.error("Error checking enrollment:", error);
@@ -110,9 +108,9 @@ export const checkEnrollmentByAdhar = async (req, res) => {
         studentExists: false,
         enrolled: false,
         student: null,
-        message: "Internal server error",
       },
       success: false,
+      message: "Internal server error",
     });
   }
 };
