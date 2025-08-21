@@ -120,7 +120,6 @@ export const createStudentWithEnrollment = async (req, res) => {
     const studyCenterId = req.user.studycenterId;
     const studentData = req.body.student;
     const course = req.body.course;
-    console.log("Student dob", studentData.dateOfBirth);
     const formatedDOB = normalizeDobToUTC(studentData.dateOfBirth);
 
 
@@ -285,7 +284,7 @@ export const EnrollExcelStudents = async (req, res) => {
 
         const approvals = await ApprovalWaiting.countDocuments({
           studentId: student._id,
-          approvalStatus: "pending",
+          // approvalStatus: "pending",
         });
 
         const totalActive = enrollments + approvals;
@@ -308,7 +307,7 @@ export const EnrollExcelStudents = async (req, res) => {
         const alreadyApplied = await ApprovalWaiting.findOne({
           studentId: student._id,
           courseId,
-          approvalStatus: "pending",
+          // approvalStatus: "pending",
         });
 
         if (alreadyEnrolled || alreadyApplied) {
@@ -395,34 +394,104 @@ export const bulkEnrollStudents = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
-  const date = new Date();
-  const today = getDateOnlyFromDate(date);
+  const today = new Date();
 
   try {
     const { newStudents, pendingEnrollmentStudents, course } = req.body;
-    const studyCenterId = req.user.studycenterId;
-    const approvalEntries = [];
+    const studycenterId = req.user.studycenterId; 
+
+    const errors = [];
+    const aadhaarSeen = new Set();
 
     const batch = await Batch.findOne({ _id: course.batchId }).session(session);
-    if (!batch) {
+    if (!batch) throw new Error("Batch not found");
+
+    const allStudents = [...pendingEnrollmentStudents, ...newStudents];
+
+    for (const student of allStudents) {
+      const adhaar = student.adhaarNumber?.toString().trim();
+
+      if (aadhaarSeen.has(adhaar)) {
+        errors.push({ student, reason: "Duplicate Aadhaar in request" });
+        continue;
+      } else {
+        aadhaarSeen.add(adhaar);
+      }
+
+      if (!adhaar || adhaar.length !== 12) {
+        errors.push({ student, reason: "Invalid Aadhaar number" });
+        continue;
+      }
+
+      const existingStudent = await Student.findOne({
+        adhaarNumber: adhaar,
+      }).session(session);
+
+      if (existingStudent) {
+        const enrollments = await Enrollment.countDocuments({
+          studentId: existingStudent._id,
+          isCompleted: false,
+        }).session(session);
+
+        const approvals = await ApprovalWaiting.countDocuments({
+          studentId: existingStudent._id,
+          // approvalStatus: "pending",
+        }).session(session);        
+
+        if (enrollments + approvals >= 2) {
+          errors.push({
+            student,
+            reason: "Already enrolled/applied for 2 active courses",
+          });
+          continue;
+        }
+
+        const alreadyEnrolled = await Enrollment.findOne({
+          studentId: existingStudent._id,
+          courseId: course.courseId,
+          isCompleted: false,
+        }).session(session);
+
+        const alreadyApplied = await ApprovalWaiting.findOne({
+          studentId: existingStudent._id,
+          courseId: course.courseId,
+        }).session(session);
+
+        if (alreadyEnrolled || alreadyApplied) {
+          errors.push({
+            student,
+            reason: "Already enrolled/applied in this course",
+          });
+          continue;
+        }
+      }
+    }
+
+    if (errors.length > 0) {
       await session.abortTransaction();
       session.endSession();
-      return res.status(404).json({
+      return res.status(400).json({
         success: false,
-        message: "Batch not found",
+        message: "Check Students & Course details Carefully, No student enrolled.",
+        errors,
       });
     }
 
     for (const student of pendingEnrollmentStudents) {
-      approvalEntries.push({
-        studentId: student._id,
-        courseId: course.courseId,
-        batchId: course.batchId,
-        studycenterId: studyCenterId,
-        year: batch.admissionYear,
-        enrolledDate: today,
-        approvalStatus: "pending",
-      });
+      await ApprovalWaiting.create(
+        [
+          {
+            studentId: student._id,
+            courseId: course.courseId,
+            batchId: course.batchId,
+            studycenterId,
+            year: batch.admissionYear,
+            enrolledDate: today,
+            approvalStatus: "pending",
+          },
+        ],
+        { session }
+      );
     }
 
     for (const student of newStudents) {
@@ -431,8 +500,7 @@ export const bulkEnrollStudents = async (req, res) => {
       const pinPart = student.pincode?.toString().slice(-3) || "000";
       const customStudentId = `${namePart}/${phonePart}/${pinPart}`;
 
-
-      const newStudent = await Student.create(
+      const [newStudent] = await Student.create(
         [
           {
             name: student.name,
@@ -457,18 +525,21 @@ export const bulkEnrollStudents = async (req, res) => {
         { session }
       );
 
-      approvalEntries.push({
-        studentId: newStudent[0]._id,
-        courseId: course.courseId,
-        batchId: course.batchId,
-        studycenterId: studyCenterId,
-        year: batch.admissionYear,
-        enrolledDate: today,
-        approvalStatus: "pending",
-      });
+      await ApprovalWaiting.create(
+        [
+          {
+            studentId: newStudent._id,
+            courseId: course.courseId,
+            batchId: course.batchId,
+            studycenterId,
+            year: batch.admissionYear,
+            enrolledDate: today,
+            approvalStatus: "pending",
+          },
+        ],
+        { session }
+      );
     }
-
-    await ApprovalWaiting.insertMany(approvalEntries, { session });
 
     await session.commitTransaction();
     session.endSession();
@@ -476,17 +547,123 @@ export const bulkEnrollStudents = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "All students moved to approval waiting list.",
-      count: approvalEntries.length,
+      count: pendingEnrollmentStudents.length + newStudents.length,
     });
   } catch (error) {
     await session.abortTransaction();
     session.endSession();
-    console.error("Bulk ApprovalWaiting Error:", error);
+    console.error("Bulk Enrollment Error:", error);
     return res.status(500).json({
       success: false,
-      error: "Internal server error",
+      error: error.message,
     });
   }
 };
+
+
+
+
+
+
+// export const bulkEnrollStudents = async (req, res) => {
+//   const session = await mongoose.startSession();
+//   session.startTransaction();
+
+//   const date = new Date();
+//   const today = getDateOnlyFromDate(date);
+
+//   try {
+//     const { newStudents, pendingEnrollmentStudents, course } = req.body;
+//     const studyCenterId = req.user.studycenterId;
+//     const approvalEntries = [];
+
+//     const batch = await Batch.findOne({ _id: course.batchId }).session(session);
+//     if (!batch) {
+//       await session.abortTransaction();
+//       session.endSession();
+//       return res.status(404).json({
+//         success: false,
+//         message: "Batch not found",
+//       });
+//     }
+
+//     for (const student of pendingEnrollmentStudents) {
+//       approvalEntries.push({
+//         studentId: student._id,
+//         courseId: course.courseId,
+//         batchId: course.batchId,
+//         studycenterId: studyCenterId,
+//         year: batch.admissionYear,
+//         enrolledDate: today,
+//         approvalStatus: "pending",
+//       });
+//     }
+
+//     for (const student of newStudents) {
+//       const namePart = (student.name || "").substring(0, 3).toUpperCase();
+//       const phonePart = student.phoneNumber?.toString().slice(-3) || "000";
+//       const pinPart = student.pincode?.toString().slice(-3) || "000";
+//       const customStudentId = `${namePart}/${phonePart}/${pinPart}`;
+
+
+//       const newStudent = await Student.create(
+//         [
+//           {
+//             name: student.name,
+//             age: student.age,
+//             dateOfBirth: student.dateOfBirth,
+//             gender: student.gender.toLowerCase(),
+//             phoneNumber: student.phoneNumber,
+//             place: student.place,
+//             district: student.district,
+//             state: student.state,
+//             pincode: student.pincode,
+//             email: student.email,
+//             adhaarNumber: student.adhaarNumber,
+//             dateOfAdmission: today,
+//             parentName: student.parentName,
+//             qualification: student.qualification,
+//             sslc: student.sslc,
+//             profileImage: student.profileImage || "",
+//             studentId: customStudentId,
+//           },
+//         ],
+//         { session }
+//       );
+
+//       approvalEntries.push({
+//         studentId: newStudent[0]._id,
+//         courseId: course.courseId,
+//         batchId: course.batchId,
+//         studycenterId: studyCenterId,
+//         year: batch.admissionYear,
+//         enrolledDate: today,
+//         approvalStatus: "pending",
+//       });
+//     }
+
+//     await ApprovalWaiting.insertMany(approvalEntries, { session });
+
+//     await session.commitTransaction();
+//     session.endSession();
+
+//     return res.status(200).json({
+//       success: true,
+//       message: "All students moved to approval waiting list.",
+//       count: approvalEntries.length,
+//     });
+//   } catch (error) {
+//     await session.abortTransaction();
+//     session.endSession();
+//     console.error("Bulk ApprovalWaiting Error:", error);
+//     return res.status(500).json({
+//       success: false,
+//       error: "Internal server error",
+//     });
+//   }
+// };
+
+
+
 
 

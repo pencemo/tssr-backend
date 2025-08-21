@@ -336,6 +336,7 @@ export const getStudentsForDl = async (req, res) => {
           isPassed: isPassed ? "Passed" : "Not Passed",
           batchMonth: batchId?.month || "",
           courseName: courseId?.name || "",
+          duration:courseId?.duration || "",
           admissionNumber: en.admissionNumber || "",
           ...(req.user.isAdmin && {
             studycenterName: en.studycenterId?.name || "",
@@ -446,7 +447,6 @@ export const updateStudentById = async (req, res) => {
   try {
     const { id, approvalId, ...restData } = req.body.data;
     const isEnrolled = req.body.data.isEnrolled === "true";
-    console.log("Student dob", restData.dateOfBirth);
     
 
     const updatedData = {

@@ -172,8 +172,6 @@ export const updateBatchDates = async (req, res) => {
   try {
     const { month, date, year } = req.body;
 
-    // console.log("date.from", date.from);
-    // console.log("date.to", date.to);
 
     if (!month || !date || !date.from || !date.to) {
       return res.status(400).json({
@@ -186,8 +184,6 @@ export const updateBatchDates = async (req, res) => {
     const endDate = normalizeDobToUTC(date.to);
     endDate.setUTCHours(23, 59, 59, 999);
 
-    // console.log("Start Date:", startDate);
-    // console.log("End Date:", endDate);
 
     const monthRegex = new RegExp(`^${month}$`, "i");
 
@@ -268,7 +264,6 @@ export const getAdmissionOpenedBatches = async (req, res) => {
   const search = req.query.search || "";
   const perPage = 10;
   const currentDate = new Date();
-  console.log("Current Date:", currentDate);
   
 
   try {

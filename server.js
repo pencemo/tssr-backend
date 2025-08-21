@@ -94,13 +94,13 @@ app.use('/', (req,res) => {
   res.send("This api not listed"); 
 })
 // Connect to MongoDB
+
 connectDB();
 
 // Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running on port ${PORT}`)
-  console.log("Date:", new Date());
 }
 );
 
