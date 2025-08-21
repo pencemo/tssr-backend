@@ -438,7 +438,7 @@ export const bulkEnrollStudents = async (req, res) => {
             name: student.name,
             age: student.age,
             dateOfBirth: student.dateOfBirth,
-            gender: student.gender,
+            gender: student.gender.toLowerCase(),
             phoneNumber: student.phoneNumber,
             place: student.place,
             district: student.district,
