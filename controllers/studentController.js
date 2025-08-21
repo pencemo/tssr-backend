@@ -446,13 +446,13 @@ export const updateStudentById = async (req, res) => {
   try {
     const { id, approvalId, ...restData } = req.body.data;
     const isEnrolled = req.body.data.isEnrolled === "true";
-        console.log("Student dob", restData.dateOfBirth);
+    console.log("Student dob", restData.dateOfBirth);
 
     const updatedData = {
       name: restData.name?.toUpperCase() || "",
       age: restData.age,
       gender: restData.gender,
-      dateOfBirth: restData.dateOfBirth? normalizeDobToUTC(new Date(restData.dateOfBirth)) : undefined,
+      dateOfBirth: restData.dateOfBirth? normalizeDobToUTC(restData.dateOfBirth) : undefined,
       phoneNumber: restData.phoneNumber,
       email: restData.email,
       place: restData.place,
