@@ -120,6 +120,7 @@ export const createStudentWithEnrollment = async (req, res) => {
     const studyCenterId = req.user.studycenterId;
     const studentData = req.body.student;
     const course = req.body.course;
+    console.log("Student dob", studentData.dateOfBirth);
     const formatedDOB = normalizeDobToUTC(studentData.dateOfBirth);
 
 

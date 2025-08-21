@@ -1,5 +1,5 @@
-export const  normalizeDobToUTC = (inputDate)=> {
-  const selectedDate = new Date(inputDate); 
+export const normalizeDobToUTC = (inputDate) => {
+  const selectedDate = new Date(inputDate);
 
   const dob = new Date(
     Date.UTC(
@@ -9,5 +9,5 @@ export const  normalizeDobToUTC = (inputDate)=> {
     )
   );
 
-  return dob; 
-}
+  return dob;
+};

@@ -446,6 +446,7 @@ export const updateStudentById = async (req, res) => {
   try {
     const { id, approvalId, ...restData } = req.body.data;
     const isEnrolled = req.body.data.isEnrolled === "true";
+        console.log("Student dob", restData.dateOfBirth);
 
     const updatedData = {
       name: restData.name?.toUpperCase() || "",
