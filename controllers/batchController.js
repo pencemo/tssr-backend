@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import Batch from "../models/batchSchema.js";
 import StudyCenter from "../models/studyCenterSchema.js";
 import { getDateOnlyFromDate } from "../utils/dateUtils.js";
+import { normalizeDobToUTC } from "../utils/DOBConvertion.js";
 export const createBatch = async (req, res) => {
   const { courseId } = req.query;
   const { month, isAdmissionStarted } = req.body;
@@ -133,8 +134,9 @@ export const editAdmissionStatus = async (req, res) => {
       });
     }
 
-    const startDate = getDateOnlyFromDate(new Date(date.from));
-    const endDate = getDateOnlyFromDate(new Date(date.to));
+    const startDate = normalizeDobToUTC(date.from);
+    const endDate = normalizeDobToUTC(date.to);
+    endDate.setUTCHours(23, 59, 59, 999);
 
     const batch = await Batch.findById(batchId);
 
@@ -170,6 +172,9 @@ export const updateBatchDates = async (req, res) => {
   try {
     const { month, date, year } = req.body;
 
+    // console.log("date.from", date.from);
+    // console.log("date.to", date.to);
+
     if (!month || !date || !date.from || !date.to) {
       return res.status(400).json({
         success: false,
@@ -177,8 +182,12 @@ export const updateBatchDates = async (req, res) => {
       });
     }
 
-    const startDate = new Date(date.from);
-    const endDate = new Date(date.to);
+    const startDate = normalizeDobToUTC(date.from);
+    const endDate = normalizeDobToUTC(date.to);
+    endDate.setUTCHours(23, 59, 59, 999);
+
+    // console.log("Start Date:", startDate);
+    // console.log("End Date:", endDate);
 
     const monthRegex = new RegExp(`^${month}$`, "i");
 
@@ -259,26 +268,37 @@ export const getAdmissionOpenedBatches = async (req, res) => {
   const search = req.query.search || "";
   const perPage = 10;
   const currentDate = new Date();
-
+  console.log("Current Date:", currentDate);
+  
 
   try {
-    const batches = await Batch.find().populate("courseId", "name category duration");
+    const batches = await Batch.find().populate(
+      "courseId",
+      "name category duration"
+    );
 
     const filtered = batches.filter((batch) => {
       const courseName = batch.courseId?.name?.toLowerCase() || "";
       const batchMonth = batch.month?.toLowerCase() || "";
       const category = batch.courseId?.category?.toLowerCase() || "";
       const searchMatch =
-        courseName.includes(search.toLowerCase()) || batchMonth.includes(search.toLowerCase()) || category.includes(search.toLowerCase());
+        courseName.includes(search.toLowerCase()) ||
+        batchMonth.includes(search.toLowerCase()) ||
+        category.includes(search.toLowerCase());
 
-      
+      if (!batch.startDate || !batch.endDate) return false;
+
+      const startOfDay = new Date(batch.startDate);
+      startOfDay.setHours(0, 0, 0, 0);
+
+      const endOfDay = new Date(batch.endDate);
+      endOfDay.setHours(23, 59, 59, 999);
+
       return (
         searchMatch &&
-        (batch.isAdmissionStarted &&
-       ( batch.startDate &&
-        batch.endDate &&
-        currentDate >= batch.startDate &&
-        currentDate <= batch.endDate))
+        batch.isAdmissionStarted &&
+        currentDate >= startOfDay &&
+        currentDate <= endOfDay
       );
     });
 
@@ -295,6 +315,7 @@ export const getAdmissionOpenedBatches = async (req, res) => {
     res.status(500).json({ message: "Server Error", error: err.message });
   }
 };
+
 
 export const getAdmissionScheduledBatches = async (req, res) => {
   const page = parseInt(req.query.page) || 1;
@@ -357,7 +378,7 @@ export const getAdmissionNotAvailableBatches = async (req, res) => {
         category.includes(search.toLowerCase());
 
         const isExpired = batch.endDate
-          ? currentDate > new Date(batch.endDate)
+          ? currentDate > batch.endDate
           : false;
       return (
         searchMatch &&
@@ -441,85 +462,14 @@ export const getAdmissionOpenedBatchesOfaCourse = async (req, res) => {
 };
 
 
-// export const getAdmissionOpenBatchesByStudyCenter = async (req, res) => {
-//   const studyCenterId = req.user.id; // Authenticated user
-//   const currentDate = new Date();
-
-//   try {
-//     // Step 1: Fetch Study Center and its available courses
-//     const studyCenter = await StudyCenter.findById(studyCenterId)
-//       .populate("courses", "name category duration")
-//       .lean();
-
-//     if (!studyCenter) {
-//       return res.status(404).json({ message: "Study center not found." });
-//     }
-
-//     const availableCourses = studyCenter.courses;
-
-//     // Step 2: Fetch all batches for those courses
-//     const allBatches = await Batch.find({
-//       courseId: { $in: availableCourses.map((course) => course._id) },
-
-//     })
-//       .populate("courseId", "name category duration")
-//       .lean();
-
-//     // Step 3: Organize courses and filter their admission-open batches
-//     const result = availableCourses.map((course) => {
-//       const courseBatches = allBatches.filter((batch) => {
-//         return (
-//           batch.courseId &&
-//           batch.courseId._id.toString() === course._id.toString() &&
-//           batch.isAdmissionStarted === true &&
-//           batch.startDate <= currentDate &&
-//           batch.endDate >= currentDate
-//         );
-//       });
-
-//       return {
-//         courseId: course._id,
-//         name: course.name,
-//         category: course.category,
-//         duration: course.duration,
-//         admissionOpenBatches: courseBatches.sort((a, b) =>
-//           a.month.localeCompare(b.month)
-//         ),
-//       };
-//     });
-
-//     // Step 4: Filter out courses that have no open batches
-//     const filteredCourses = result.filter(
-//       (course) => course.admissionOpenBatches.length > 0
-//     );
-
-//     return res.status(200).json({
-//       success: true,
-//       studyCenter: {
-//         id: studyCenter._id,
-//         name: studyCenter.name,
-//       },
-//       courses: filteredCourses,
-//     });
-//   } catch (err) {
-//     console.error("Error fetching admission opened batches:", err);
-//     return res.status(500).json({
-//       success: false,
-//       message: "Server error",
-//       error: err.message,
-//     });
-//   }
-// };
-
 
 export const getAdmissionOpenBatchesByStudyCenter = async (req, res) => {
-  const studyCenterId = req.user.studycenterId; // Authenticated study center
+  const studyCenterId = req.user.studycenterId; 
   const currentDate = new Date();
 
   try {
-    // Step 1: Find the study center and its assigned courses
     const studyCenter = await StudyCenter.findById(studyCenterId)
-      .populate("courses", "_id name category duration") // just the essential fields
+      .populate("courses", "_id name category duration") 
       .lean();
 
     if (!studyCenter) {
@@ -528,7 +478,6 @@ export const getAdmissionOpenBatchesByStudyCenter = async (req, res) => {
 
     const courseIds = studyCenter.courses.map((course) => course._id);
 
-    // Step 2: Fetch only OPEN batches for those courses
     const openBatches = await Batch.find({
       courseId: { $in: courseIds },
       isAdmissionStarted: true,
@@ -536,7 +485,7 @@ export const getAdmissionOpenBatchesByStudyCenter = async (req, res) => {
       endDate: { $gte: currentDate },
     })
       .populate("courseId", "name category duration")
-      .sort({ startDate: 1 }) // Optional: sort by soonest first
+      .sort({ startDate: 1 }) 
       .lean();
 
     return res.status(200).json({
