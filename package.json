@@ -5,8 +5,8 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "dev": "nodemon server.js",
-    "start": "node server.js",
+    "dev": "cross-env TZ=Asia/Kolkata nodemon server.js",
+    "start": "cross-env TZ=Asia/Kolkata node server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
