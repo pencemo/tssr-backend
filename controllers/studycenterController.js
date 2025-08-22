@@ -66,7 +66,6 @@ export const addStudyCenter = async (req, res) => {
       }
     }
 
-    // === Generate regNo and atcId format: ABC/XYZ/1050 (starts from 1050) ===
     let newNumber = 1051;
     let regNo = 50301;
     const lastCenter = await StudyCenter.findOne().sort({ createdAt: -1 });
@@ -372,7 +371,7 @@ export const getAllStudyCenterForExcel = async (req, res) => {
     const studyCenters = await StudyCenter.find()
       .sort({ name: 1 })
       .select("-__v  -updatedAt")
-      .populate("courses", "name -_id"); // this will replace _id with { _id, courseName }
+      .populate("courses", "name -_id"); 
 
     return res.status(200).json({
       success: true,

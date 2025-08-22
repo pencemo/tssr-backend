@@ -46,7 +46,7 @@ export const checkEnrollmentByAdhar = async (req, res) => {
 
     const pendingApprovals = await ApprovalWaiting.countDocuments({
       studentId: student._id,
-      approvalStatus: "pending",
+      // approvalStatus: "pending",
     });
 
     const totalCourses = enrollments + pendingApprovals;
@@ -113,13 +113,111 @@ export const checkEnrollmentByAdhar = async (req, res) => {
   }
 };
 
+// export const createStudentWithEnrollment = async (req, res) => {
+//   try {
+//     const studyCenterId = req.user.studycenterId;
+//     const studentData = req.body.student;
+//     const course = req.body.course;
+//     const formatedDOB = normalizeDobToUTC(studentData.dateOfBirth);
+
+
+//     const {
+//       name,
+//       age,
+//       gender,
+//       phoneNumber,
+//       place,
+//       state,
+//       district,
+//       pincode,
+//       email,
+//       adhaarNumber,
+//       dateOfAdmission,
+//       parentName,
+//       qualification,
+//       sslc,
+//       profileImage,
+//     } = studentData;
+
+//     const { courseId, batchId } = course;
+
+//     if (!adhaarNumber || !courseId || !batchId ) {
+//       return res.status(400).json({
+//         message: "Aadhaar number, courseId, batchId, and year are required.",
+//         success: false,
+//       });
+//     }
+
+//     let student = await Student.findOne({ adhaarNumber });
+
+// if (!student) {
+//   const namePart = (name || "").substring(0, 3).toUpperCase();
+//   const phonePart = phoneNumber?.toString().slice(-3) || "000";
+//   const pinPart = pincode?.toString().slice(-3) || "000";
+//   const customStudentId = `${namePart}/${phonePart}/${pinPart}`;
+
+//   const newStudent = new Student({
+//     name,
+//     age,
+//     dateOfBirth:formatedDOB,
+//     gender,
+//     phoneNumber,
+//     place,
+//     state,
+//     district,
+//     pincode,
+//     email,
+//     adhaarNumber,
+//     dateOfAdmission,
+//     parentName,
+//     qualification,
+//     studentId: customStudentId,
+//     sslc,
+//     profileImage,
+//   });
+
+//   student = await newStudent.save();
+// }
+//     const batch = await Batch.findOne({_id: batchId});
+//     const newApproval = new ApprovalWaiting({
+//       studentId: student._id,
+//       courseId,
+//       batchId,
+//       year: batch?.admissionYear,
+//       studycenterId: studyCenterId,
+//       enrolledDate: new Date(),
+//       approvalStatus: "pending",
+//     });
+
+//     await newApproval.save();
+
+
+//     return res.status(201).json({
+//       message: "Student and enrollment created successfully.",
+//       student,
+//       enrollment: newApproval,
+//       success: true,
+//     });
+//   } catch (error) {
+//     console.error("Error in student with enrollment creation:", error);
+//     return res.status(500).json({
+//       message: "Internal Server Error",
+//       error: error.message,
+//       success: false,
+//     });
+//   }
+// };
+
+
 export const createStudentWithEnrollment = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
     const studyCenterId = req.user.studycenterId;
     const studentData = req.body.student;
     const course = req.body.course;
     const formatedDOB = normalizeDobToUTC(studentData.dateOfBirth);
-
 
     const {
       name,
@@ -141,56 +239,108 @@ export const createStudentWithEnrollment = async (req, res) => {
 
     const { courseId, batchId } = course;
 
-    if (!adhaarNumber || !courseId || !batchId ) {
+    if (!adhaarNumber || !courseId || !batchId) {
       return res.status(400).json({
-        message: "Aadhaar number, courseId, batchId, and year are required.",
+        message: "Aadhaar number, courseId, and batchId are required.",
         success: false,
       });
     }
 
-    let student = await Student.findOne({ adhaarNumber });
+    let student = await Student.findOne({ adhaarNumber }).session(session);
 
-if (!student) {
-  const namePart = (name || "").substring(0, 3).toUpperCase();
-  const phonePart = phoneNumber?.toString().slice(-3) || "000";
-  const pinPart = pincode?.toString().slice(-3) || "000";
-  const customStudentId = `${namePart}/${phonePart}/${pinPart}`;
+    if (student) {
+      const enrollments = await Enrollment.countDocuments({
+        studentId: student._id,
+        isCompleted: false,
+      }).session(session);
 
-  const newStudent = new Student({
-    name,
-    age,
-    dateOfBirth:formatedDOB,
-    gender,
-    phoneNumber,
-    place,
-    state,
-    district,
-    pincode,
-    email,
-    adhaarNumber,
-    dateOfAdmission,
-    parentName,
-    qualification,
-    studentId: customStudentId,
-    sslc,
-    profileImage,
-  });
+      const approvals = await ApprovalWaiting.countDocuments({
+        studentId: student._id,
+        // approvalStatus: "pending",
+      }).session(session);
 
-  student = await newStudent.save();
-}
-    const batch = await Batch.findOne({_id: batchId});
+      if (enrollments + approvals >= 2) {
+        await session.abortTransaction();
+        return res.status(400).json({
+          message: "Student is already enrolled/applied for 2 active courses.",
+          success: false,
+        });
+      }
+
+      const alreadyEnrolled = await Enrollment.findOne({
+        studentId: student._id,
+        courseId,
+        isCompleted: false,
+      }).session(session);
+
+      const alreadyApplied = await ApprovalWaiting.findOne({
+        studentId: student._id,
+        courseId,
+        approvalStatus: "pending",
+      }).session(session);
+
+      if (alreadyEnrolled || alreadyApplied) {
+        await session.abortTransaction();
+        return res.status(400).json({
+          message: "Student has already enrolled/applied in this course.",
+          success: false,
+        });
+      }
+    }
+
+    // ✅ If student doesn't exist, create one
+    if (!student) {
+      const namePart = (name || "").substring(0, 3).toUpperCase();
+      const phonePart = phoneNumber?.toString().slice(-3) || "000";
+      const pinPart = pincode?.toString().slice(-3) || "000";
+      const customStudentId = `${namePart}/${phonePart}/${pinPart}`;
+
+      const newStudent = new Student({
+        name,
+        age,
+        dateOfBirth: formatedDOB,
+        gender,
+        phoneNumber,
+        place,
+        state,
+        district,
+        pincode,
+        email,
+        adhaarNumber,
+        dateOfAdmission,
+        parentName,
+        qualification,
+        studentId: customStudentId,
+        sslc,
+        profileImage,
+      });
+
+      student = await newStudent.save({ session });
+    }
+
+    const batch = await Batch.findOne({ _id: batchId }).session(session);
+    if (!batch) {
+      await session.abortTransaction();
+      return res.status(404).json({
+        message: "Batch not found.",
+        success: false,
+      });
+    }
+
+    // ✅ Create approval
     const newApproval = new ApprovalWaiting({
       studentId: student._id,
       courseId,
       batchId,
-      year: batch?.admissionYear,
+      year: batch.admissionYear,
       studycenterId: studyCenterId,
       enrolledDate: new Date(),
       approvalStatus: "pending",
     });
 
-    await newApproval.save();
+    await newApproval.save({ session });
 
+    await session.commitTransaction();
 
     return res.status(201).json({
       message: "Student and enrollment created successfully.",
@@ -200,13 +350,17 @@ if (!student) {
     });
   } catch (error) {
     console.error("Error in student with enrollment creation:", error);
+    await session.abortTransaction();
     return res.status(500).json({
       message: "Internal Server Error",
       error: error.message,
       success: false,
     });
+  } finally {
+    session.endSession();
   }
 };
+
 
 export const EnrollExcelStudents = async (req, res) => {
   try {
@@ -448,7 +602,7 @@ export const bulkEnrollStudents = async (req, res) => {
           studentId: existingStudent._id,
           courseId: course.courseId,
           isCompleted: false,
-        }).session(session);
+        }).session(session);    
 
         const alreadyApplied = await ApprovalWaiting.findOne({
           studentId: existingStudent._id,
