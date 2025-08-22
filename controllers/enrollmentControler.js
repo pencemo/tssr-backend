@@ -18,8 +18,8 @@ export const checkEnrollmentByAdhar = async (req, res) => {
           studentExists: false,
           enrolled: false,
           student: null,
-          message: "Aadhaar number is required.",
         },
+        message: "Aadhaar number is required.",
         success: false,
       });
     }
@@ -33,19 +33,17 @@ export const checkEnrollmentByAdhar = async (req, res) => {
           studentExists: false,
           enrolled: false,
           student: null,
-          message: "Student with this Aadhaar number does not exist.",
         },
+        message: "Student with this Aadhaar number does not exist.",
         success: true,
       });
     }
 
-    // Step 2: Count active enrollments
     const enrollments = await Enrollment.countDocuments({
       studentId: student._id,
       isCompleted: false,
     });
 
-    // Step 3: Count pending approvals
     const pendingApprovals = await ApprovalWaiting.countDocuments({
       studentId: student._id,
       approvalStatus: "pending",
@@ -58,9 +56,9 @@ export const checkEnrollmentByAdhar = async (req, res) => {
           studentExists: true,
           enrolled: true,
           student,
-          message:
-            "Student is already enrolled or applied for 2 active courses.",
         },
+        message:
+          "Student is already enrolled or applied for 2 active courses.",
         success: false,
       });
     }
