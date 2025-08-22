@@ -82,6 +82,7 @@ export const getPendingAndRejectedStudents = async (req, res) => {
       message: `Fetched ${status} students.`,
       currentPage: pageNum,
       totalPages,
+      totalDate: filtered.length,
       students: paginatedStudents,
     });
   } catch (error) {
@@ -156,7 +157,8 @@ export const updateStatusOfPendingApprovals = async (req, res) => {
       let lastNumber = 1049;
       if (lastEnrollment) {
         const parsed = parseInt(lastEnrollment.admissionNumber.slice(4), 10);
-        if (!isNaN(parsed)) lastNumber = parsed;
+        lastNumber = parsed;
+        console.log(" last adminssion number:", lastNumber);
       }
 
       let nextNumber = lastNumber + 1;
@@ -164,6 +166,7 @@ export const updateStatusOfPendingApprovals = async (req, res) => {
       for (const approval of group.approvals) {
         if (status === "approved") {
           const admissionNumber = `${centerCode}${String(nextNumber).padStart(4, "0")}`;
+          console.log("next Number :", nextNumber);
           nextNumber++;
 
           const enrollmentDoc = {
@@ -176,10 +179,13 @@ export const updateStatusOfPendingApprovals = async (req, res) => {
             admissionNumber,
           };
 
-          await enrollmentSchema.create(enrollmentDoc);
+         const createdEnrollment = await enrollmentSchema.create(enrollmentDoc);
           enrolledCount++;
-
-          await ApprovalWaiting.deleteOne({ _id: approval._id });
+            console.log("Created Enrollment:", createdEnrollment);
+            if (createdEnrollment && createdEnrollment._id) {
+              await ApprovalWaiting.deleteOne({ _id: approval._id });
+              enrolledCount++;
+            }
         } else {
           await ApprovalWaiting.updateOne(
             { _id: approval._id },
