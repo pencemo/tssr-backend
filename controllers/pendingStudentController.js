@@ -94,7 +94,6 @@ export const getPendingAndRejectedStudents = async (req, res) => {
   }
 };
 
-
 export const updateStatusOfPendingApprovals = async (req, res) => {
   try {
     const { pendingIds, status } = req.body;
@@ -181,12 +180,13 @@ export const updateStatusOfPendingApprovals = async (req, res) => {
             admissionNumber,
           };
 
-         const createdEnrollment = await enrollmentSchema.create(enrollmentDoc);
-            console.log("Created Enrollment:", createdEnrollment);
-            if (createdEnrollment && createdEnrollment._id) {
-              await ApprovalWaiting.deleteOne({ _id: approval._id });
-              enrolledCount++;
-            }
+          const createdEnrollment =
+            await enrollmentSchema.create(enrollmentDoc);
+          console.log("Created Enrollment:", createdEnrollment);
+          if (createdEnrollment && createdEnrollment._id) {
+            await ApprovalWaiting.deleteOne({ _id: approval._id });
+            enrolledCount++;
+          }
         } else {
           await ApprovalWaiting.updateOne(
             { _id: approval._id },
@@ -209,6 +209,38 @@ export const updateStatusOfPendingApprovals = async (req, res) => {
   }
 };
 
+export const deleteApprovalWaiting = async (req, res) => {
+  try {
+    const { id } = req.query; 
 
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: "Approval ID is required",
+      });
+    }
 
+    const deleted = await ApprovalWaiting.findOneAndDelete({
+      _id: id,
+      approvalStatus: "rejected", 
+    });
 
+    if (!deleted) {
+      return res.status(404).json({
+        success: false,
+        message: "Rejected approval not found or already deleted",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Rejected approval deleted successfully",
+    });
+  } catch (error) {
+    console.error("Error deleting approval waiting:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};

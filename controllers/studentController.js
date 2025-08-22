@@ -108,7 +108,7 @@ export const getStudyCenterStudents = async (req, res) => {
             },
           ]
         : []),
-      { $sort: { admissionNumber: -1 } },
+      { $sort: { createdAt: -1 } },
 
       {
         $project: {
