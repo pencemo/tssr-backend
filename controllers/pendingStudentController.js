@@ -156,9 +156,11 @@ export const updateStatusOfPendingApprovals = async (req, res) => {
 
       let lastNumber = 1049;
       if (lastEnrollment) {
-        const parsed = parseInt(lastEnrollment.admissionNumber.slice(4), 10);
-        lastNumber = parsed;
-        console.log(" last adminssion number:", lastNumber);
+        const adm = String(lastEnrollment.admissionNumber || "").trim();
+        if (/^\d{8}$/.test(adm)) {
+          const parsed = parseInt(adm.slice(4), 10);
+          if (!isNaN(parsed)) lastNumber = parsed;
+        }
       }
 
       let nextNumber = lastNumber + 1;
@@ -180,7 +182,6 @@ export const updateStatusOfPendingApprovals = async (req, res) => {
           };
 
          const createdEnrollment = await enrollmentSchema.create(enrollmentDoc);
-          enrolledCount++;
             console.log("Created Enrollment:", createdEnrollment);
             if (createdEnrollment && createdEnrollment._id) {
               await ApprovalWaiting.deleteOne({ _id: approval._id });
