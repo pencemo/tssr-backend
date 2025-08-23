@@ -89,25 +89,26 @@ export const getStudyCenterStudents = async (req, res) => {
                   { "student.name": new RegExp(search, "i") },
                   { "student.phoneNumber": new RegExp(search, "i") },
                   { admissionNumber: searchRegex },
+                  { "student.adhaarNumber": searchRegex },
                 ],
               },
             },
           ]
         : []),
 
-      ...(!search
-        ? [
-            {
-              $group: {
-                _id: "$student._id",
-                doc: { $first: "$$ROOT" },
-              },
-            },
-            {
-              $replaceRoot: { newRoot: "$doc" },
-            },
-          ]
-        : []),
+      // ...(!search
+      //   ? [
+      //       {
+      //         $group: {
+      //           _id: "$student._id",
+      //           doc: { $first: "$$ROOT" },
+      //         },
+      //       },
+      //       {
+      //         $replaceRoot: { newRoot: "$doc" },
+      //       },
+      //     ]
+      //   : []),
       { $sort: { createdAt: -1 } },
 
       {

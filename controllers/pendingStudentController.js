@@ -151,7 +151,8 @@ export const updateStatusOfPendingApprovals = async (req, res) => {
 
       const lastEnrollment = await enrollmentSchema
         .findOne({ studycenterId: centerId })
-        .sort({ admissionNumber: -1 });
+        .sort({ createdAt: -1 });
+      
 
       let lastNumber = 1049;
       if (lastEnrollment) {
@@ -167,7 +168,6 @@ export const updateStatusOfPendingApprovals = async (req, res) => {
       for (const approval of group.approvals) {
         if (status === "approved") {
           const admissionNumber = `${centerCode}${String(nextNumber).padStart(4, "0")}`;
-          console.log("next Number :", nextNumber);
           nextNumber++;
 
           const enrollmentDoc = {
@@ -182,7 +182,6 @@ export const updateStatusOfPendingApprovals = async (req, res) => {
 
           const createdEnrollment =
             await enrollmentSchema.create(enrollmentDoc);
-          console.log("Created Enrollment:", createdEnrollment);
           if (createdEnrollment && createdEnrollment._id) {
             await ApprovalWaiting.deleteOne({ _id: approval._id });
             enrolledCount++;
