@@ -300,8 +300,8 @@ export const getStudentsForDl = async (req, res) => {
         select: fields ? fields.join(" ") : "",
       })
       .populate({ path: "batchId", select: "month admissionYear" })
-      .populate({ path: "courseId", select: "name" })
-      .populate({ path: "studycenterId", select: "name" });
+      .populate({ path: "courseId", select: "name duration" })
+      .populate({ path: "studycenterId", select: "name " });
 
     if (enrollments.length === 0) {
       return res.status(404).json({
@@ -353,7 +353,7 @@ export const getStudentsForDl = async (req, res) => {
           b.studycenterName || ""
         );
         if (centerCompare !== 0) return centerCompare;
-      }
+      } 
       return (a.name || "").localeCompare(b.name || "");
     });
 
@@ -365,6 +365,7 @@ export const getStudentsForDl = async (req, res) => {
         : "All Study Centers",
 
       courseName: courseId ? enrollments[0].courseId.name : "All Courses",
+      duration: courseId ? enrollments[0].courseId.duration : "",
       batchMonth: batchId ? enrollments[0].batchId.month : "All Batches",
       year: year || "All Years",
     });
