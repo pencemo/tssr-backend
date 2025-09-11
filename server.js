@@ -24,6 +24,7 @@ import ApprovalRoutes from "./routes/pendingStudentRoutes.js";
 import staffRoutes from "./routes/staffRoutes.js";
 import externalApiRoutes from "./routes/websiteApisRoutes.js";
 import galleryRoutes from "./routes/galleryRoutes.js";
+import pdfRoutes from "./utils/generatePDF.js";
 
 dotenv.config();
 const app = express();
@@ -90,6 +91,7 @@ app.use("/api/approval", ApprovalRoutes);
 app.use("/api/staff", staffRoutes);
 app.use("/api/externalApi",externalApiRoutes);
 app.use("/api/gallery", galleryRoutes);
+app.use("/api/pdf", pdfRoutes);
 app.use('/', (req,res) => {
   res.send("This api not listed"); 
 })
