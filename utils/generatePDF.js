@@ -1,6 +1,5 @@
 import express from "express";
 import puppeteer from "puppeteer";
-
 const router = express.Router();
 
 router.post("/generate-pdf", async (req, res) => {
