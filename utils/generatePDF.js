@@ -22,8 +22,6 @@ router.post("/generate-pdf", async (req, res) => {
         "--disable-setuid-sandbox",
         "--disable-gpu",
         "--disable-dev-shm-usage",
-        "--single-process", // Add this for better performance
-        "--no-zygote",
       ],
     }); 
     const page = await browser.newPage();
