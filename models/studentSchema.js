@@ -61,7 +61,10 @@ const studentSchema = new Schema(
     },
     studentId: {
       type: String,
-    }
+    },
+    houseName: {
+      type: String,
+    },
   },
   {
     timestamps: true,

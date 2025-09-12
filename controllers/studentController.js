@@ -246,6 +246,7 @@ export const getOneStudent = async (req, res) => {
         gender: student.gender,
         phoneNumber: student.phoneNumber,
         place: student.place,
+        houseName: student.houseName,
         district: student.district,
         state: student.state,
         pincode: student.pincode,
@@ -470,6 +471,7 @@ export const updateStudentById = async (req, res) => {
         : undefined,
       profileImage: restData.profileImage,
       sslc: restData.sslc,
+      houseName: restData.houseName,
     };
 
     // Remove undefined values

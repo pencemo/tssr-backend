@@ -1,22 +1,16 @@
 import Product from '../models/productSchema.js'
 import Order from '../models/orderSchema.js'
 import User from '../models/userSchema.js';
+
 export const createOrder = async (req, res) => {
   try {
     const { productId, quantity } = req.body;
-    const buyerId = req.user.id; 
+    const buyerId = req.user.studycenterId; 
 
     if (!buyerId || !productId || !quantity) {
       return res.status(400).json({
         success: false,
         message: "All fields are required.",
-      });
-    }
-    const user = await User.findById(buyerId);
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found.",
       });
     }
 
@@ -50,7 +44,7 @@ export const getAllOrders = async (req, res) => {
   try {
     const orders = await Order.find()
       .sort({ createdAt: -1 })
-      .populate("buyerId", "name email")
+      .populate("buyerId", "name email phoneNumber")
       .populate("productId", "name price");
 
     res.status(200).json({ success: true, orders });
@@ -93,7 +87,7 @@ export const updateStatus = async (req, res) => {
 
 export const getOrdersOfAUser = async (req, res) => {
   try {
-    const buyerId = req.user.id; // Comes from auth middleware
+    const buyerId = req.user.studycenterId; // Comes from auth middleware
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
 

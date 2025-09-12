@@ -235,8 +235,8 @@ export const createStudentWithEnrollment = async (req, res) => {
       qualification,
       sslc,
       profileImage,
+      houseName,
     } = studentData;
-
     const { courseId, batchId } = course;
 
     if (!adhaarNumber || !courseId || !batchId) {
@@ -313,6 +313,7 @@ export const createStudentWithEnrollment = async (req, res) => {
         studentId: customStudentId,
         sslc,
         profileImage,
+        houseName,
       });
 
       student = await newStudent.save({ session });
@@ -383,6 +384,7 @@ export const EnrollExcelStudents = async (req, res) => {
       "adhaarNumber",
       "parentName",
       "qualification",
+      "houseName",
     ];
 
     const newStudents = [];
@@ -541,7 +543,6 @@ export const EnrollExcelStudents = async (req, res) => {
   }
 };
 
-
 export const bulkEnrollStudents = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -672,6 +673,7 @@ export const bulkEnrollStudents = async (req, res) => {
             sslc: student.sslc,
             profileImage: student.profileImage || "",
             studentId: customStudentId,
+            houseName: student.houseName,
           },
         ],
         { session }
