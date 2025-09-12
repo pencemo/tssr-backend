@@ -12,6 +12,7 @@ router.post("/generate-pdf", async (req, res) => {
         message: "Missing required fields",
       });
     }
+    console.log(url);
 
     const browser = await puppeteer.launch({
       headless: "new",
