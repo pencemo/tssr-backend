@@ -37,15 +37,15 @@ router.post("/generate-pdf", async (req, res) => {
     }, student);  
 
     await page.goto(url, {
-      waitUntil: "networkidle2",  
-      timeout: 60000,
+      waitUntil: "domcontentloaded",  
+      timeout: 0,
     });
 
-    // await page.waitForFunction(() => {
-    //   // Check if there's meaningful content
-    //   const content = document.body.textContent;
-    //   return content && content.length > 100;
-    // });
+    await page.waitForFunction(() => {
+      // Check if there's meaningful content
+      const content = document.body.textContent;
+      return content && content.length > 100;
+    });
 
     page.on("console", (msg) => console.log("PAGE LOG:", msg.text()));
     page.on("requestfailed", (request) => {
