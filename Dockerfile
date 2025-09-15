@@ -44,6 +44,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Install chromium from Debian repo (usually chromium is available)
 RUN apt-get update && apt-get install -y chromium --no-install-recommends || true
 
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 # If above didn't install chromium executable, fallback to installing chromium-browser
 RUN if [ ! -f /usr/bin/chromium ] && [ ! -f /usr/bin/chromium-browser ]; then \
       apt-get update && apt-get install -y chromium-browser --no-install-recommends || true; \
