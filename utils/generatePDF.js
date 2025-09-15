@@ -14,10 +14,10 @@ router.post("/generate-pdf", async (req, res) => {
       });
     }
     console.log(url);
-
+    const CHROMIUM_PATH = process.platform === 'win32' ? undefined : '/usr/bin/chromium-browser';
     browser = await puppeteer.launch({
       headless: "new",
-      executablePath: "/usr/bin/chromium", // installed in Docker
+      executablePath: CHROMIUM_PATH,  
       args: [
         "--no-sandbox",
         "--disable-setuid-sandbox",
@@ -78,6 +78,19 @@ router.post("/generate-pdf", async (req, res) => {
     if (browser) {
       await browser.close().catch(e => console.error('Error closing browser:', e));
       console.error("Browser closed" );
+    }
+    try {
+      if (browser) {
+        const pages = await browser.pages();
+        if (pages[0]) {
+          await pages[0].screenshot({ path: "/tmp/puppeteer-debug.png", fullPage: true });
+          const html = await pages[0].content();
+          require('fs').writeFileSync("/tmp/puppeteer-debug.html", html);
+          console.error("Saved debug artifacts to /tmp");
+        }
+      }
+    } catch (di) {
+      console.error("Failed saving debug artifacts:", di);
     }
     res.status(500).json({
       success: false,
