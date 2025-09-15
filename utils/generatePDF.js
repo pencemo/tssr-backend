@@ -19,17 +19,10 @@ router.post("/generate-pdf", async (req, res) => {
       headless: "new",
       executablePath: "/usr/bin/chromium", // installed in Docker
       args: [
-        // "--no-sandbox",
-        // "--disable-setuid-sandbox",
-        // "--disable-gpu",
-        // "--disable-dev-shm-usage",
         "--no-sandbox",
         "--disable-setuid-sandbox",
         "--disable-gpu",
         "--disable-dev-shm-usage",
-        // "--disable-software-rasterizer",
-        // "--single-process",
-        // "--no-zygote",
       ],
     }); 
     const page = await browser.newPage(); 
@@ -44,17 +37,17 @@ router.post("/generate-pdf", async (req, res) => {
     }, student);  
 
     await page.goto(url, {
-      waitUntil: "domcontentloaded",  
+      waitUntil: "networkidle2",  
       timeout: 60000,
     });
 
-    await page.waitForFunction(() => {
-      // Check if there's meaningful content
-      const content = document.body.textContent;
-      return content && content.length > 100;
-    });
+    // await page.waitForFunction(() => {
+    //   // Check if there's meaningful content
+    //   const content = document.body.textContent;
+    //   return content && content.length > 100;
+    // });
 
-    page.on("console", (msg) => console.log("PAGE LOG:", msg.args()));
+    page.on("console", (msg) => console.log("PAGE LOG:", msg.text()));
     page.on("requestfailed", (request) => {
       console.log("❌ Failed Request:", request.url(), request.failure());
     });
@@ -84,6 +77,7 @@ router.post("/generate-pdf", async (req, res) => {
     console.error("Error generating PDF:", error);
     if (browser) {
       await browser.close().catch(e => console.error('Error closing browser:', e));
+      console.error("Browser closed" );
     }
     res.status(500).json({
       success: false,
