@@ -37,7 +37,7 @@ router.post("/generate-pdf", async (req, res) => {
     }, student);  
 
     await page.goto(url, {
-      waitUntil: "networkidle0",  
+      waitUntil: "domcontentloaded",  
       // timeout: 20000,
     });
 
