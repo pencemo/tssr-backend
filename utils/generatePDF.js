@@ -17,7 +17,7 @@ router.post("/generate-pdf", async (req, res) => {
 
     browser = await puppeteer.launch({
       headless: "new",
-      // executablePath: "/usr/bin/chromium", // installed in Docker
+      executablePath: "/usr/bin/chromium", // installed in Docker
       args: [
         // "--no-sandbox",
         // "--disable-setuid-sandbox",
@@ -27,9 +27,9 @@ router.post("/generate-pdf", async (req, res) => {
         "--disable-setuid-sandbox",
         "--disable-gpu",
         "--disable-dev-shm-usage",
-        "--disable-software-rasterizer",
-        "--single-process",
-        "--no-zygote",
+        // "--disable-software-rasterizer",
+        // "--single-process",
+        // "--no-zygote",
       ],
     }); 
     const page = await browser.newPage(); 
