@@ -14,7 +14,7 @@ router.post("/generate-pdf", async (req, res) => {
       });
     }
     console.log(url);
-    const CHROMIUM_PATH = process.platform === 'win32' ? undefined : '/usr/bin/chromium-browser';
+    const CHROMIUM_PATH = '/usr/bin/chromium-browser';
     browser = await puppeteer.launch({
       headless: "new",
       executablePath: CHROMIUM_PATH,  
