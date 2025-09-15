@@ -19,10 +19,17 @@ router.post("/generate-pdf", async (req, res) => {
       headless: "new",
       executablePath: "/usr/bin/chromium", // installed in Docker
       args: [
+        // "--no-sandbox",
+        // "--disable-setuid-sandbox",
+        // "--disable-gpu",
+        // "--disable-dev-shm-usage",
         "--no-sandbox",
         "--disable-setuid-sandbox",
         "--disable-gpu",
         "--disable-dev-shm-usage",
+        "--disable-software-rasterizer",
+        "--single-process",
+        "--no-zygote",
       ],
     }); 
     const page = await browser.newPage(); 
@@ -38,7 +45,7 @@ router.post("/generate-pdf", async (req, res) => {
 
     await page.goto(url, {
       waitUntil: "domcontentloaded",  
-      // timeout: 20000,
+      timeout: 60000,
     });
 
     await page.waitForFunction(() => {
