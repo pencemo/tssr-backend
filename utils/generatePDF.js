@@ -17,7 +17,7 @@ router.post("/generate-pdf", async (req, res) => {
 
     browser = await puppeteer.launch({
       headless: "new",
-      executablePath: "/usr/bin/chromium", // installed in Docker
+      // executablePath: "/usr/bin/chromium", // installed in Docker
       args: [
         // "--no-sandbox",
         // "--disable-setuid-sandbox",
