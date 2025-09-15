@@ -54,7 +54,7 @@ WORKDIR /app
 
 # Copy package.json & install deps
 COPY package*.json ./
-RUN npm ci --production
+# RUN npm ci --production
 RUN npm install
 
 # Copy app
