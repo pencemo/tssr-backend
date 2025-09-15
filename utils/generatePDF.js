@@ -17,8 +17,7 @@ router.post("/generate-pdf", async (req, res) => {
 
     browser = await puppeteer.launch({
       headless: "new",
-      // executablePath: "/usr/bin/chromium", // installed in Docker
-      // args: ["--no-sandbox", "--disable-setuid-sandbox"],
+      executablePath: "/usr/bin/chromium", // installed in Docker
       args: [
         "--no-sandbox",
         "--disable-setuid-sandbox",
@@ -27,10 +26,10 @@ router.post("/generate-pdf", async (req, res) => {
       ],
     }); 
     const page = await browser.newPage(); 
-    if(!page){
+    if(!page || !browser){
       return res.status(400).json({
         success: false,
-        message: "Error creating page",
+        message: "Error creating browser & page",
       })
     }
     await page.evaluateOnNewDocument((data) => {
@@ -38,17 +37,14 @@ router.post("/generate-pdf", async (req, res) => {
     }, student);  
 
     await page.goto(url, {
-      waitUntil: "domcontentloaded",  
-      timeout: 20000,
+      waitUntil: "networkidle0",  
+      // timeout: 20000,
     });
 
     await page.waitForFunction(() => {
       // Check if there's meaningful content
       const content = document.body.textContent;
       return content && content.length > 100;
-    }, { 
-      timeout: 20000,
-      // polling: 1000 // Check every second
     });
 
     page.on("console", (msg) => console.log("PAGE LOG:", msg.args()));
