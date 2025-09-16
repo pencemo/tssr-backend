@@ -35,9 +35,9 @@ router.post("/generate-pdf", async (req, res) => {
         message: "Error creating browser & page",
       })
     }
-    await page.evaluateOnNewDocument((data) => {
-      window.__PRELOADED_DATA__ = data;
-    }, student);  
+    // await page.evaluateOnNewDocument((data) => {
+    //   window.__PRELOADED_DATA__ = data;
+    // }, student);  
 
     await page.goto(url, {
       waitUntil: "domcontentloaded",  
