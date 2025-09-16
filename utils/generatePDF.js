@@ -20,9 +20,15 @@ router.post("/generate-pdf", async (req, res) => {
       // executablePath: "/usr/bin/chromium", // installed in Docker
       args: [
         "--no-sandbox",
-        "--disable-setuid-sandbox",
-        "--disable-gpu",
-        "--disable-dev-shm-usage",
+      "--disable-setuid-sandbox",
+      "--disable-gpu",
+      "--disable-dev-shm-usage",
+
+      "--disable-accelerated-2d-canvas",
+      "--disable-software-rasterizer",
+      "--disable-dev-tools",
+      "--no-zygote",
+      "--single-process",
       ],
     }); 
     const page = await browser.newPage(); 
@@ -40,7 +46,7 @@ router.post("/generate-pdf", async (req, res) => {
     //   waitUntil: "networkidle0",  
     //   // timeout: 0,
     // });
-    await page.setContent("<h1>Hello PDF</h1>", { waitUntil: "networkidle0" });
+    await page.setContent("<h1>Hello PDF</h1>", { waitUntil: "domcontentloaded", timeout: 60000, });
     // await page.waitForFunction(() => {
     //   // Check if there's meaningful content
     //   const content = document.body.textContent;
