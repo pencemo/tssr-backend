@@ -1,5 +1,7 @@
 FROM node:20-slim
 
+ENV PUPPETEER_SKIP_DOWNLOAD=true
+
 # Install dependencies for Chromium
 RUN apt-get update && apt-get install -y \
     chromium \
