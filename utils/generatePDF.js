@@ -5,15 +5,29 @@ const router = express.Router();
 router.post("/generate-pdf", async (req, res) => {
   let browser;
   try {
-    const { url, student } = req.body;
-
-    if(!url || !student) {
-      return res.status(400).json({
-        success: false, 
-        message: "Missing required fields",
-      });
+    const { html } = req.body;
+    if (!html) {
+      return res.status(400).json({ success: false, message: "Missing HTML" });
     }
-    console.log(url);
+
+    // Wrap component HTML with Tailwind & full HTML doc
+    const fullHTML = `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <script src="https://cdn.tailwindcss.com"></script>
+        <style>
+          body { background: white; padding: 20px; }
+        </style>
+      </head>
+      <body>
+        ${html}
+      </body>
+      </html>
+    `;
+    console.log(html ? "html found": "no html found");
     browser = await puppeteer.launch({
       headless: "new",
       executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || puppeteer.executablePath(),
@@ -38,22 +52,19 @@ router.post("/generate-pdf", async (req, res) => {
     // await page.evaluateOnNewDocument((data) => {
     //   window.__PRELOADED_DATA__ = data;
     // }, student);  
+    await page.setContent(fullHTML, { waitUntil: "domcontentloaded" });
 
-    await page.evaluateOnNewDocument((data) => {
-      window.__PRELOADED_DATA__ = JSON.parse(data);
-    }, JSON.stringify(student));
+    // try {
+    //   await page.goto(url, {
+    //     waitUntil: "domcontentloaded",
+    //     timeout: 30000,
+    //   });
+    // } catch (err) {
+    //   console.error("Navigation failed:", err.message);
+    //   throw err;
+    // }
 
-    try {
-      await page.goto(url, {
-        waitUntil: "domcontentloaded",
-        timeout: 30000,
-      });
-    } catch (err) {
-      console.error("Navigation failed:", err.message);
-      throw err;
-    }
-
-    await page.waitForSelector(".student-profile");
+    // await page.waitForSelector(".student-profile");
     // await page.waitForFunction(() => {
     //   // Check if there's meaningful content
     //   const content = document.body.textContent;
