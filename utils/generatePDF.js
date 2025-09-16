@@ -24,8 +24,8 @@ router.post("/generate-pdf", async (req, res) => {
       "--disable-gpu",
       "--disable-dev-shm-usage",
 
-    "--single-process",
-    "--no-zygote",
+      "--single-process",
+      "--no-zygote",
       ],
     }); 
     const page = await browser.newPage(); 
@@ -39,16 +39,15 @@ router.post("/generate-pdf", async (req, res) => {
       window.__PRELOADED_DATA__ = data;
     }, student);  
 
-    // await page.goto(url, {
-    //   waitUntil: "networkidle0",  
-    //   // timeout: 0,
-    // });
-    await page.setContent("<h1>Hello PDF</h1>", { waitUntil: "domcontentloaded", timeout: 60000, });
-    // await page.waitForFunction(() => {
-    //   // Check if there's meaningful content
-    //   const content = document.body.textContent;
-    //   return content && content.length > 100;
-    // });
+    await page.goto(url, {
+      waitUntil: "networkidle0",  
+      // timeout: 0,
+    });
+    await page.waitForFunction(() => {
+      // Check if there's meaningful content
+      const content = document.body.textContent;
+      return content && content.length > 100;
+    });
 
     page.on("console", (msg) => console.log("PAGE LOG:", msg.text()));
     page.on("requestfailed", (request) => {
