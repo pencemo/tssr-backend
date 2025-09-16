@@ -21,7 +21,7 @@ router.post("/generate-pdf", async (req, res) => {
       <script src="https://cdn.tailwindcss.com"></script>
       <link rel="preconnect" href="https://fonts.googleapis.com">
       <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+      <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet">
 
       <style>
         body { background: white; padding: 0; margin: 0; font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; }
@@ -33,7 +33,6 @@ router.post("/generate-pdf", async (req, res) => {
     </html>
   `;
   
-    console.log(html ? "html found": "no html found");
     browser = await puppeteer.launch({
       headless: "new",
       executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || puppeteer.executablePath(),
@@ -45,7 +44,7 @@ router.post("/generate-pdf", async (req, res) => {
       "--disable-dev-shm-usage",
 
       "--single-process",
-      "--no-zygote",
+      "--no-zygote", 
       ],
     }); 
     const page = await browser.newPage(); 
@@ -58,7 +57,7 @@ router.post("/generate-pdf", async (req, res) => {
     // await page.evaluateOnNewDocument((data) => {
     //   window.__PRELOADED_DATA__ = data;
     // }, student);  
-    await page.setContent(fullHTML, { waitUntil: "domcontentloaded" });
+    await page.setContent(fullHTML, { waitUntil: "domcontentloaded", timeout: 30000, });
 
     // try {
     //   await page.goto(url, {
