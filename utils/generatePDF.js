@@ -24,11 +24,8 @@ router.post("/generate-pdf", async (req, res) => {
       "--disable-gpu",
       "--disable-dev-shm-usage",
 
-      "--disable-accelerated-2d-canvas",
-      "--disable-software-rasterizer",
-      "--disable-dev-tools",
-      "--no-zygote",
-      "--single-process",
+    "--single-process",
+    "--no-zygote",
       ],
     }); 
     const page = await browser.newPage(); 
