@@ -12,21 +12,26 @@ router.post("/generate-pdf", async (req, res) => {
 
     // Wrap component HTML with Tailwind & full HTML doc
     const fullHTML = `
-      <!DOCTYPE html>
-      <html lang="en">
-      <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <script src="https://cdn.tailwindcss.com"></script>
-        <style>
-          body { background: white; padding: 20px; }
-        </style>
-      </head>
-      <body>
-        ${html}
-      </body>
-      </html>
-    `;
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <base href="https://app.tssrcouncil.com/" />
+      <script src="https://cdn.tailwindcss.com"></script>
+      <link rel="preconnect" href="https://fonts.googleapis.com">
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+      <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+      <style>
+        body { background: white; padding: 20px; font-family: 'Roboto', sans-serif; }
+      </style>
+    </head>
+    <body>
+      ${html}
+    </body>
+    </html>
+  `;
+  
     console.log(html ? "html found": "no html found");
     browser = await puppeteer.launch({
       headless: "new",
