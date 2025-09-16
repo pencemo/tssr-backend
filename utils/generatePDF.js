@@ -17,14 +17,13 @@ router.post("/generate-pdf", async (req, res) => {
     <head>
       <meta charset="UTF-8" />
       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-      <base href="https://app.tssrcouncil.com/" />
+      
       <script src="https://cdn.tailwindcss.com"></script>
       <link rel="preconnect" href="https://fonts.googleapis.com">
       <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-      <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet">
-
+      <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
       <style>
-        body { background: white; padding: 0; margin: 0; font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; }
+        body { background: white; padding: 0; margin: 0; font-family: 'Roboto', sans-serif, ui-sans-serif, system-ui, sans-serif; }
       </style>
     </head>
     <body>
@@ -32,6 +31,7 @@ router.post("/generate-pdf", async (req, res) => {
     </body>
     </html>
   `;
+  
   
     browser = await puppeteer.launch({
       headless: "new",
