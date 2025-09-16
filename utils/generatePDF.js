@@ -40,8 +40,8 @@ router.post("/generate-pdf", async (req, res) => {
     }, student);  
 
     await page.goto(url, {
-      waitUntil: "networkidle0",  
-      // timeout: 0,
+      waitUntil: "domcontentloaded",  
+      timeout: 60000,
     });
     await page.waitForFunction(() => {
       // Check if there's meaningful content
