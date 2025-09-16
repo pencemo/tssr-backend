@@ -17,7 +17,7 @@ router.post("/generate-pdf", async (req, res) => {
     <head>
       <meta charset="UTF-8" />
       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-      
+      <base href="https://app.tssrcouncil.com/" />
       <script src="https://cdn.tailwindcss.com"></script>
       <link rel="preconnect" href="https://fonts.googleapis.com">
       <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -57,7 +57,7 @@ router.post("/generate-pdf", async (req, res) => {
     // await page.evaluateOnNewDocument((data) => {
     //   window.__PRELOADED_DATA__ = data;
     // }, student);  
-    await page.setContent(fullHTML, { waitUntil: "domcontentloaded", timeout: 30000, });
+    await page.setContent(fullHTML, { waitUntil: "networkidle0", timeout: 30000, });
 
     // try {
     //   await page.goto(url, {
