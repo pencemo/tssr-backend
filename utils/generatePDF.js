@@ -41,13 +41,13 @@ router.post("/generate-pdf", async (req, res) => {
 
     await page.goto(url, {
       waitUntil: "domcontentloaded",  
-      timeout: 60000,
+      timeout: 30000,
     });
-    await page.waitForFunction(() => {
-      // Check if there's meaningful content
-      const content = document.body.textContent;
-      return content && content.length > 100;
-    });
+    // await page.waitForFunction(() => {
+    //   // Check if there's meaningful content
+    //   const content = document.body.textContent;
+    //   return content && content.length > 100;
+    // });
 
     page.on("console", (msg) => console.log("PAGE LOG:", msg.text()));
     page.on("requestfailed", (request) => {
