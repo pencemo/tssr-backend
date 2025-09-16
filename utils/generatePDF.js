@@ -39,10 +39,21 @@ router.post("/generate-pdf", async (req, res) => {
     //   window.__PRELOADED_DATA__ = data;
     // }, student);  
 
-    await page.goto(url, {
-      waitUntil: "domcontentloaded",  
-      timeout: 30000,
-    });
+    await page.evaluateOnNewDocument((data) => {
+      window.__PRELOADED_DATA__ = JSON.parse(data);
+    }, JSON.stringify(student));
+
+    try {
+      await page.goto(url, {
+        waitUntil: "domcontentloaded",
+        timeout: 30000,
+      });
+    } catch (err) {
+      console.error("Navigation failed:", err.message);
+      throw err;
+    }
+
+    await page.waitForSelector(".student-profile");
     // await page.waitForFunction(() => {
     //   // Check if there's meaningful content
     //   const content = document.body.textContent;
