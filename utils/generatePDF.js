@@ -16,6 +16,7 @@ router.post("/generate-pdf", async (req, res) => {
     console.log(url);
     browser = await puppeteer.launch({
       headless: "new",
+      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || puppeteer.executablePath(),
       // executablePath: "/usr/bin/chromium", // installed in Docker
       args: [
         "--no-sandbox",
@@ -80,7 +81,7 @@ router.post("/generate-pdf", async (req, res) => {
     }
     res.status(500).json({
       success: false,
-      message: "Error generating PDF",
+      message: "Error generating PDF", error,
     });
   }
 });
