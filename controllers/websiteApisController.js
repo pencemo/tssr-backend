@@ -72,6 +72,43 @@ export const requestATC = async (req, res) => {
     });
   }
 };
+export const verifiATC = async (req, res) => {
+  try {
+    const {
+      atcId,
+    } = req.body;
+
+    if (
+      !atcId
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "ATC ID required.",
+      });
+    }
+
+    const studyCenter = await StudyCenter.findOne({ atcId });
+
+    if (studyCenter) {
+      return res.status(409).json({
+        success: false,
+        message: "Study center with this ATC ID not found.",
+      });
+    }
+
+    return res.status(201).json({
+      success: true,
+      message: "Study center verified.",
+      data: studyCenter,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "An error occurred.",
+      error: error.message,
+    });
+  }
+};
 
 export const getUnapprovedStudyCenters = async (req, res) => {
   try {
