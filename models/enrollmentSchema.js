@@ -49,6 +49,9 @@ const enrollmentSchema = new mongoose.Schema(
     certificateId: {
       type: String,
     },
+    grade: {
+      type: String,
+    },
   },
   { timestamps: true }
 );

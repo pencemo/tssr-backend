@@ -45,6 +45,7 @@ const allowedOrigins = [
   process.env.FRONTEND_URL?.trim().replace(/\/$/, ""),
   process.env.FRONTEND_URL2?.trim().replace(/\/$/, ""),
   'http://localhost:5173',
+  'http://www.tssrcouncil.com',
   'http://localhost:3000'
 ];
 
