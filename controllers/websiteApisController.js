@@ -2,6 +2,7 @@ import StudyCenter from "../models/studyCenterSchema.js";
 import User from "../models/userSchema.js";
 import bcrypt from "bcryptjs";
 import { sendEmail } from "../utils/sendEmail.js";
+import Course from "../models/courseSchema.js";
 
 export const requestATC = async (req, res) => {
   try {
@@ -89,7 +90,7 @@ export const verifiATC = async (req, res) => {
 
     const studyCenter = await StudyCenter.findOne({ atcId });
 
-    if (studyCenter) {
+    if (!studyCenter) {
       return res.status(409).json({
         success: false,
         message: "Study center with this ATC ID not found.",
@@ -388,3 +389,26 @@ export const updateAtcRequest = async (req, res) => {
   }
 };
 
+export const getAllCoursesForReg = async (req, res) => {
+  try {
+    const courses = await Course.find({ isActive: true }).sort({ name: 1 });
+
+    if(!courses.length) {
+      return res.status(404).json({
+        success: false,
+        message: "No courses found.",
+      })
+    }
+    res.status(200).json({
+      success: true,
+      message: "All courses fetched successfully.",
+      data: courses,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "An error occurred while fetching courses.",
+      error: error.message,
+    });
+  }
+}
