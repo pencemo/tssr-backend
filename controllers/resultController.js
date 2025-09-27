@@ -275,7 +275,7 @@ export const verifyCertificate = async (req, res) => {
     });
   }
   try{
-    const Student = await enrollmentSchema.findOne({admissionNumber}).populate("studycenterId", "name").populate("studentId", "name dateOfBirth").populate("batchId", "month").populate("courseId", "name duration");
+    const Student = await enrollmentSchema.findOne({admissionNumber}).populate("studycenterId", "name").populate("studentId", "name profileImage dateOfBirth").populate("batchId", "month").populate("courseId", "name duration");
     if(!Student){
       return res.status(404).json({
         success: false,
