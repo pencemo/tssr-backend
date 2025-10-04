@@ -263,50 +263,71 @@ export const getAdmissionOpenedBatches = async (req, res) => {
   const page = parseInt(req.query.page) || 1;
   const search = req.query.search || "";
   const perPage = 10;
-  const currentDate = new Date();
-  
+
+  const startOfToday = new Date();
+  startOfToday.setUTCHours(0, 0, 0, 0);
 
   try {
-    const batches = await Batch.find().populate(
-      "courseId",
-      "name category duration"
-    );
+    const pipeline = [
+      {
+        $match: {
+          isAdmissionStarted: true,
+          endDate: { $gte: startOfToday },
+        },
+      },
+      {
+        $lookup: {
+          from: "courses",
+          localField: "courseId",
+          foreignField: "_id",
+          as: "courseDetails",
+        },
+      },
+      {
+        $unwind: "$courseDetails",
+      },
+      {
+        $match: {
+          $or: [
+            { "courseDetails.name": { $regex: search, $options: "i" } },
+            { "courseDetails.category": { $regex: search, $options: "i" } },
+            { month: { $regex: search, $options: "i" } },
+          ],
+        },
+      },
+    ];
 
-    const filtered = batches.filter((batch) => {
-      const courseName = batch.courseId?.name?.toLowerCase() || "";
-      const batchMonth = batch.month?.toLowerCase() || "";
-      const category = batch.courseId?.category?.toLowerCase() || "";
-      const searchMatch =
-        courseName.includes(search.toLowerCase()) ||
-        batchMonth.includes(search.toLowerCase()) ||
-        category.includes(search.toLowerCase());
+    const countPipeline = [...pipeline, { $count: "total" }];
 
-      if (!batch.startDate || !batch.endDate) return false;
+    const dataPipeline = [
+      ...pipeline,
+      { $sort: { startDate: 1 } },
+      { $skip: (page - 1) * perPage },
+      { $limit: perPage },
+      {
+        $project: {
+          _id: 1,
+          month: 1,
+          startDate: 1,
+          endDate: 1,
+          isAdmissionStarted: 1,
+          courseId: "$courseDetails",
+        },
+      },
+    ];
 
-      const startOfDay = new Date(batch.startDate);
-      startOfDay.setHours(0, 0, 0, 0);
+    const totalResult = await Batch.aggregate(countPipeline);
+    const totalBatches = totalResult.length > 0 ? totalResult[0].total : 0;
+    const paginatedBatches = await Batch.aggregate(dataPipeline);
 
-      const endOfDay = new Date(batch.endDate);
-      endOfDay.setHours(23, 59, 59, 999);
-
-      return (
-        searchMatch &&
-        batch.isAdmissionStarted &&
-        currentDate >= startOfDay &&
-        currentDate <= endOfDay
-      );
-    });
-
-    const start = (page - 1) * perPage;
-    const paginated = filtered.slice(start, start + perPage);
-
-    res.json({
-      totalPage: Math.ceil(filtered.length / perPage),
+    res.status(200).json({
+      totalPage: Math.ceil(totalBatches / perPage),
       currentPage: page,
       perPage,
-      data: paginated,
+      data: paginatedBatches,
     });
   } catch (err) {
+    console.error("Error fetching open batches:", err);
     res.status(500).json({ message: "Server Error", error: err.message });
   }
 };
