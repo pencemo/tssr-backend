@@ -264,15 +264,18 @@ export const getAdmissionOpenedBatches = async (req, res) => {
   const search = req.query.search || "";
   const perPage = 10;
 
-  const startOfToday = new Date();
-  startOfToday.setUTCHours(0, 0, 0, 0);
+  // Get the exact current moment for an accurate comparison.
+  const currentDate = new Date();
 
   try {
     const pipeline = [
       {
         $match: {
           isAdmissionStarted: true,
-          endDate: { $gte: startOfToday },
+          // FIX: Added this line to ensure the batch has already started.
+          startDate: { $lte: currentDate },
+          // This line correctly ensures the batch has not yet ended.
+          endDate: { $gte: currentDate },
         },
       },
       {
