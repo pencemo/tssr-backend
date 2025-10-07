@@ -73,13 +73,13 @@ app.use(cors({
 
 // Routes
 app.use("/api/auth", authenticationRoutes);
+app.use("/api/batch", batchRoutes);
+app.use("/api/course", courseRoutes);
+app.use("/api/enrollment", enrollmentRoutes);
 app.use("/api/students", studentRoutes);
 app.use("/api/subject", subjectRoutes);
-app.use("/api/course", courseRoutes);
 app.use("/api/result", resultRoutes);
 app.use("/api/studycenter", studycenterRoute);
-app.use("/api/batch", batchRoutes);
-app.use("/api/enrollment", enrollmentRoutes);
 app.use("/api/settings", settingsRoutes);
 app.use('/api/products', productRoutes);
 app.use("/api/orders", orderRoutes);

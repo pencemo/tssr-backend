@@ -41,12 +41,20 @@ export const createOrder = async (req, res) => {
 };
   
 export const getAllOrders = async (req, res) => {
+  const { status } = req.query;
+   
   try {
-    const orders = await Order.find()
+    const orders = await Order.find({ status })
       .sort({ createdAt: -1 })
-      .populate("buyerId", "name email phoneNumber")
-      .populate("productId", "name price");
-
+      .populate("buyerId", "name email phoneNumber place district state pincode centerHead atcId")
+      .populate("productId", "name price"); 
+    
+    if (!orders) {
+      return res.status(404).json({
+        success: false,
+        message: "No orders found.",
+      });
+    }
     res.status(200).json({ success: true, orders });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -129,7 +137,7 @@ export const getOrdersByStatus = async (req, res) => {
         match: { name: searchRegex },
         select: "name price description",
       })
-      .populate("buyerId", "name email")
+      .populate("buyerId", "name email phoneNumber")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(Number(limit));
