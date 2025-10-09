@@ -259,10 +259,10 @@ export const getOpenOrManuallyStartedBatches = async (req, res) => {
   }
 };
 
-export const getAdmissionOpenedBatches = async (req, res) => {
+export const getAdmissionOpenedBatches = async (req, res) => { 
   const page = parseInt(req.query.page) || 1;
   const search = req.query.search || "";
-  const perPage = 10;
+  const perPage = Number(req.query.limit) || 10;
 
   // Get the exact current moment for an accurate comparison.
   const currentDate = new Date();
@@ -339,7 +339,7 @@ export const getAdmissionOpenedBatches = async (req, res) => {
 export const getAdmissionScheduledBatches = async (req, res) => {
   const page = parseInt(req.query.page) || 1;
   const search = req.query.search || "";
-  const perPage = 10;
+  const perPage = Number(req.query.limit) || 10;
   const currentDate = new Date();
   
 
@@ -378,7 +378,7 @@ export const getAdmissionScheduledBatches = async (req, res) => {
 export const getAdmissionNotAvailableBatches = async (req, res) => {
   const page = parseInt(req.query.page) || 1;
   const search = req.query.search || "";
-  const perPage = 10;
+  const perPage = Number(req.query.limit) || 10;
   const currentDate = new Date();
 
   try {
