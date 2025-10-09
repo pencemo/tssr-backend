@@ -78,6 +78,7 @@ export const storeResultFromExcel = async (req, res) => {
         enrollment.isCompleted = true;
         enrollment.isPassed = isPassed;
         enrollment.isCertificateIssued = isPassed;
+        enrollment.grade = grade;
 
         await enrollment.save();
       }

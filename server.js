@@ -73,26 +73,26 @@ app.use(cors({
 
 // Routes
 app.use("/api/auth", authenticationRoutes);
+app.use("/api/approval", ApprovalRoutes);
 app.use("/api/batch", batchRoutes);
 app.use("/api/course", courseRoutes);
-app.use("/api/enrollment", enrollmentRoutes);
-app.use("/api/students", studentRoutes);
-app.use("/api/subject", subjectRoutes);
-app.use("/api/result", resultRoutes);
-app.use("/api/studycenter", studycenterRoute);
-app.use("/api/settings", settingsRoutes);
-app.use('/api/products', productRoutes);
-app.use("/api/orders", orderRoutes);
 app.use("/api/dashboard", dashboardRoutes);
-app.use("/api/notifications", notificationRoutes);
+app.use("/api/enrollment", enrollmentRoutes);
 app.use("/api/exam", ExamScheduleRoutes);
-app.use('/api/hallticket',hallTicketRoutes)
-app.use("/api/request", requestCourseRoutes);
-app.use("/api/approval", ApprovalRoutes);
-app.use("/api/staff", staffRoutes);
 app.use("/api/externalApi",externalApiRoutes);
 app.use("/api/gallery", galleryRoutes);
+app.use('/api/hallticket',hallTicketRoutes)
+app.use("/api/notifications", notificationRoutes);
+app.use("/api/orders", orderRoutes);
 app.use("/api/pdf", pdfRoutes);
+app.use('/api/products', productRoutes);
+app.use("/api/result", resultRoutes);
+app.use("/api/request", requestCourseRoutes);
+app.use("/api/students", studentRoutes);
+app.use("/api/subject", subjectRoutes);
+app.use("/api/staff", staffRoutes);
+app.use("/api/studycenter", studycenterRoute);
+app.use("/api/settings", settingsRoutes);
 app.use('/', (req,res) => {
   res.send("This api not listed"); 
 })
