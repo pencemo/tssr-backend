@@ -44,10 +44,16 @@ export const requestATC = async (req, res) => {
       });
     }
 
+    function cleanPhoneToNumber(phoneNumber) {
+      const cleaned = phoneNumber.replace(/^\+91\s?|\s/g, '');
+      return Number(cleaned);
+  }
+  const phNo = cleanPhoneToNumber(phoneNumber);
+
     const newStudyCenter = new StudyCenter({
       name,
       email,
-      phoneNumber,
+      phoneNumber: phNo,
       place,
       pincode,
       district,
