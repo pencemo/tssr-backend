@@ -53,7 +53,7 @@ export const requestATC = async (req, res) => {
     const newStudyCenter = new StudyCenter({
       name,
       email,
-      phoneNumber: phNo,
+      phoneNumber: phNo || 0,
       place,
       pincode,
       district,

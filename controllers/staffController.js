@@ -31,20 +31,20 @@ export const createStaff = async (req, res) => {
     }
 
     // ✅ Get the latest staffId and prepare new entries
-    const currentYear = new Date().getFullYear();
+    // const currentYear = new Date().getFullYear();
     const latestStaff = await Staff.findOne().sort({ createdAt: -1 }).lean();
 
     let nextNumber = 1;
     if (latestStaff && latestStaff.staffId) {
       const parts = latestStaff.staffId.split("/");
-      const lastNumber = parseInt(parts[3]);
+      const lastNumber = parseInt(parts[2]);
       if (!isNaN(lastNumber)) {
-        nextNumber = lastNumber + 1;
+        nextNumber = lastNumber + 1; 
       }
     }
 
     const staffEntries = data.map((entry, index) => {
-      const staffId = `TSSR/STF/${currentYear}/${(nextNumber + index)
+      const staffId = `TSSR/STF/${(nextNumber + index)
         .toString()
         .padStart(3, "0")}`;
 
