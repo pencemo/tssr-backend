@@ -177,7 +177,7 @@ export const getOneStudent = async (req, res) => {
         .populate("studentId")
         .populate({ path: "batchId", select: "month" })
         .populate({ path: "studycenterId", select: "name" })
-        .populate({ path: "courseId", select: "name" });
+        .populate({ path: "courseId", select: "name duration" });
 
       if (!enrollment) {
         return res
@@ -202,6 +202,7 @@ export const getOneStudent = async (req, res) => {
         batchMonth: batchId?.month || "",
         batchId: batchId?._id || "",
         courseName: courseId?.name || "",
+        duration: courseId?.duration || "",
         courseId: courseId?._id || "",
       };
     } else {
@@ -263,7 +264,8 @@ export const getOneStudent = async (req, res) => {
         studycenter: studycenter?.name || "",
         batchMonth: batch?.month || "",
         batchId: batch?._id || "",
-        courseName: course.name,
+        courseName: course?.name,
+        duration: course?.duration,
         courseId: course?._id || "",
       };
     }
