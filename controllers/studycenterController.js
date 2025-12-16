@@ -256,6 +256,7 @@ export const updateStudyCenter = async (req, res) => {
       courses,
       isActive,
       isApproved,
+      logo,
       users = [],
     } = req.body;
 
@@ -284,6 +285,7 @@ export const updateStudyCenter = async (req, res) => {
     if (courses !== undefined) updateFields.courses = courses;
     if (isApproved !== undefined) updateFields.isApproved = isApproved;
     if (isActive !== undefined) updateFields.isActive = isActive;
+    if (logo !== undefined) updateFields.logo = logo;
 
     const updatedCenter = await StudyCenter.findByIdAndUpdate(
       id,
